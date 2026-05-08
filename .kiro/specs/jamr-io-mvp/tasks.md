@@ -40,37 +40,37 @@ This implementation plan breaks down the jamr.io MVP into discrete, actionable c
     - Add health check endpoint
     - _Requirements: 15.4_
 
-- [ ] 2. Security and encryption infrastructure
-  - [ ] 2.1 Implement token encryption service
+- [-] 2. Security and encryption infrastructure
+  - [x] 2.1 Implement token encryption service
     - Create encryption.py with Fernet-based TokenEncryption class
     - Implement encrypt() and decrypt() methods
     - Load encryption key from environment variable
     - _Requirements: 1.3, 15.1_
 
-  - [ ] 2.2 Write property test for token encryption
+  - [x] 2.2 Write property test for token encryption
     - **Property 1: Token Encryption** - Validates: Requirements 1.3, 15.1
 
-  - [ ] 2.3 Implement input sanitization utilities
+  - [x] 2.3 Implement input sanitization utilities
     - Create validators.py with sanitize_html() function
     - Implement validate_spotify_jam_link() function
     - Implement validate_room_name() and validate_room_description() functions
     - Implement validate_message_content() function
     - _Requirements: 7.6, 7.7, 8.2, 15.3_
 
-  - [ ] 2.4 Write property tests for input validation
+  - [x] 2.4 Write property tests for input validation
     - **Property 10: Room Name Validation** - Validates: Requirements 5.2
     - **Property 11: Room Description Validation** - Validates: Requirements 5.3
     - **Property 24: XSS Sanitization** - Validates: Requirements 7.6
     - **Property 25: Message Length Validation** - Validates: Requirements 7.7
     - **Property 26: Spotify Jam Link Validation** - Validates: Requirements 8.2
 
-  - [ ] 2.4 Implement rate limiting middleware
+  - [x] 2.4 Implement rate limiting middleware
     - Create rate_limiter.py with RateLimiter class
     - Implement check_rate_limit() method with sliding window algorithm
     - Add rate limiting dependency to FastAPI routes
     - _Requirements: 15.6_
 
-  - [ ] 2.5 Write property test for rate limiting
+  - [x] 2.5 Write property test for rate limiting
     - **Property 51: Rate Limiting** - Validates: Requirements 15.6
 
 - [ ] 3. Spotify OAuth authentication flow
