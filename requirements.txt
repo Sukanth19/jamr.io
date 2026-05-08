@@ -1,0 +1,27 @@
+# Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+
+# Database
+sqlalchemy==2.0.23
+psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# Real-time Communication
+python-socketio==5.10.0
+
+# Security & Encryption
+cryptography==41.0.7
+
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+hypothesis==6.92.1
+httpx==0.25.2
+
+# Spotify API
+requests==2.31.0
+
+# Utilities
+python-dotenv==1.0.0
