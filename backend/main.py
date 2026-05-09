@@ -31,9 +31,11 @@ app.add_middleware(
 
 # Import routers
 from backend.auth import router as auth_router
+from backend.rooms import router as rooms_router
 
 # Include routers
 app.include_router(auth_router)
+app.include_router(rooms_router)
 
 # Mount static files directory for frontend
 # This will serve HTML, CSS, and JavaScript files
