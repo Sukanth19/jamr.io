@@ -17,6 +17,9 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Import Socket.IO server
+from backend.socketio_server import socket_app
+
 # Configure CORS middleware
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
 
@@ -41,6 +44,9 @@ app.include_router(rooms_router)
 # This will serve HTML, CSS, and JavaScript files
 if os.path.exists("frontend"):
     app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+# Mount Socket.IO application
+app.mount("/socket.io", socket_app)
 
 
 @app.on_event("startup")

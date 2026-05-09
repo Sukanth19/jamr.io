@@ -8,6 +8,9 @@ from sqlalchemy.orm import sessionmaker
 from backend.database import Base
 from backend.models import User, Room, Message, RoomMembership, Session
 
+# Configure pytest-asyncio
+pytest_plugins = ('pytest_asyncio',)
+
 # Use a temporary file for SQLite testing
 _test_db_file = None
 _test_engine = None
