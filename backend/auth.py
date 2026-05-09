@@ -7,10 +7,12 @@ from datetime import datetime, timedelta
 from typing import Dict
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends, Cookie
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+
+from backend.database import get_db
 
 # Load environment variables
 load_dotenv()
@@ -22,9 +24,6 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 # In production, use Redis or database with expiration
 _state_store: Dict[str, datetime] = {}
 
-# Spotify OAuth configuration
-SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
-SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 
 # Required Spotify scopes
@@ -61,27 +60,21 @@ async def spotify_oauth_redirect():
     Raises:
         HTTPException: If Spotify client configuration is missing
     """
+    # Get Spotify configuration (read fresh from environment)
+    spotify_client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    spotify_redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
+    
     # Validate Spotify configuration
-    if not SPOTIFY_CLIENT_ID:
+    if not spotify_client_id:
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": {
-                    "code": "CONFIGURATION_ERROR",
-                    "message": "Spotify client ID not configured"
-                }
-            }
+            detail="Spotify client ID not configured"
         )
     
-    if not SPOTIFY_REDIRECT_URI:
+    if not spotify_redirect_uri:
         raise HTTPException(
             status_code=500,
-            detail={
-                "error": {
-                    "code": "CONFIGURATION_ERROR",
-                    "message": "Spotify redirect URI not configured"
-                }
-            }
+            detail="Spotify redirect URI not configured"
         )
     
     # Clean up expired state tokens
@@ -96,9 +89,9 @@ async def spotify_oauth_redirect():
     
     # Construct Spotify authorization URL
     auth_params = {
-        "client_id": SPOTIFY_CLIENT_ID,
+        "client_id": spotify_client_id,
         "response_type": "code",
-        "redirect_uri": SPOTIFY_REDIRECT_URI,
+        "redirect_uri": spotify_redirect_uri,
         "state": state,
         "scope": " ".join(SPOTIFY_SCOPES),
         "show_dialog": "false"  # Don't force approval screen on every login
@@ -516,4 +509,320 @@ def _default_taste_vector() -> dict:
         'instrumentalness': 0.5,
         'speechiness': 0.5,
         'tempo_normalized': 0.5
+    }
+
+
+def refresh_spotify_token(user_id: int, db: Session) -> str:
+    """
+    Refresh Spotify access token using refresh token.
+    
+    This function is called when a Spotify API request returns 401 (token expired).
+    It uses the stored refresh token to obtain a new access token from Spotify,
+    updates the encrypted tokens in the database, and returns the new access token.
+    
+    **Validates: Requirements 14.1**
+    
+    Args:
+        user_id: The ID of the user whose token needs refreshing
+        db: Database session
+    
+    Returns:
+        str: The new access token (decrypted)
+    
+    Raises:
+        HTTPException: If refresh token is missing, expired, or refresh fails
+    """
+    from backend.models import User
+    from backend.encryption import get_encryptor
+    
+    # Fetch user from database
+    user = db.query(User).filter(User.id == user_id).first()
+    
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "code": "USER_NOT_FOUND",
+                    "message": "User not found"
+                }
+            }
+        )
+    
+    # Check if refresh token exists
+    if not user.refresh_token_encrypted:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "NO_REFRESH_TOKEN",
+                    "message": "No refresh token available. Please re-authenticate."
+                }
+            }
+        )
+    
+    # Decrypt refresh token
+    encryptor = get_encryptor()
+    try:
+        refresh_token = encryptor.decrypt(user.refresh_token_encrypted)
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "INVALID_REFRESH_TOKEN",
+                    "message": "Failed to decrypt refresh token"
+                }
+            }
+        )
+    
+    # Validate Spotify configuration
+    spotify_client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    if not spotify_client_id:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "CONFIGURATION_ERROR",
+                    "message": "Spotify client ID not configured"
+                }
+            }
+        )
+    
+    spotify_client_secret = os.getenv("SPOTIFY_CLIENT_SECRET")
+    if not spotify_client_secret:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "CONFIGURATION_ERROR",
+                    "message": "Spotify client secret not configured"
+                }
+            }
+        )
+    
+    # Request new access token from Spotify
+    token_url = "https://accounts.spotify.com/api/token"
+    token_data = {
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+        "client_id": spotify_client_id,
+        "client_secret": spotify_client_secret
+    }
+    
+    try:
+        with httpx.Client() as client:
+            token_response = client.post(token_url, data=token_data)
+            
+            if token_response.status_code != 200:
+                # Refresh token might be expired or invalid
+                error_data = token_response.json() if token_response.text else {}
+                error_message = error_data.get("error_description", "Failed to refresh token")
+                
+                raise HTTPException(
+                    status_code=401,
+                    detail={
+                        "error": {
+                            "code": "TOKEN_REFRESH_FAILED",
+                            "message": f"Failed to refresh Spotify token: {error_message}"
+                        }
+                    }
+                )
+            
+            token_json = token_response.json()
+            new_access_token = token_json.get("access_token")
+            new_refresh_token = token_json.get("refresh_token")  # Spotify may return a new refresh token
+            expires_in = token_json.get("expires_in", 3600)
+            
+            if not new_access_token:
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": {
+                            "code": "MISSING_ACCESS_TOKEN",
+                            "message": "Access token not returned by Spotify"
+                        }
+                    }
+                )
+            
+            # Calculate new token expiration time
+            new_token_expires_at = datetime.now() + timedelta(seconds=expires_in)
+            
+            # Encrypt new tokens
+            new_access_token_encrypted = encryptor.encrypt(new_access_token)
+            new_refresh_token_encrypted = user.refresh_token_encrypted  # Keep old one if not provided
+            if new_refresh_token:
+                new_refresh_token_encrypted = encryptor.encrypt(new_refresh_token)
+            
+            # Update user record in database
+            user.access_token_encrypted = new_access_token_encrypted
+            user.refresh_token_encrypted = new_refresh_token_encrypted
+            user.token_expires_at = new_token_expires_at
+            user.updated_at = datetime.now()
+            
+            db.commit()
+            
+            # Return the new access token (decrypted)
+            return new_access_token
+    
+    except httpx.RequestError as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "NETWORK_ERROR",
+                    "message": f"Network error during token refresh: {str(e)}"
+                }
+            }
+        )
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is
+        raise
+    except Exception as e:
+        # Log the error (in production, use proper logging)
+        print(f"Token refresh error: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "error": {
+                    "code": "INTERNAL_ERROR",
+                    "message": "An error occurred during token refresh"
+                }
+            }
+        )
+
+
+
+def get_current_user(
+    session_token: str = Cookie(None, alias="session_token"),
+    db: Session = Depends(get_db)
+) -> User:
+    """
+    Authentication middleware dependency function.
+    
+    Validates session token from cookie and returns the authenticated user.
+    
+    **Validates: Requirements 13.3, 13.4**
+    
+    Args:
+        session_token: Session token from HTTP-only cookie
+        db: Database session dependency
+    
+    Returns:
+        User: The authenticated user object
+    
+    Raises:
+        HTTPException: 401 if token is missing, invalid, or expired
+    """
+    from backend.models import User, Session as SessionModel
+    
+    # Check if session token is provided
+    if not session_token:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": {
+                    "code": "MISSING_SESSION_TOKEN",
+                    "message": "Authentication required"
+                }
+            }
+        )
+    
+    # Query session from database
+    session = db.query(SessionModel).filter(
+        SessionModel.token == session_token
+    ).first()
+    
+    # Check if session exists
+    if not session:
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": {
+                    "code": "INVALID_SESSION_TOKEN",
+                    "message": "Invalid session token"
+                }
+            }
+        )
+    
+    # Check if session has expired
+    if session.expires_at < datetime.now():
+        # Delete expired session
+        db.delete(session)
+        db.commit()
+        
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": {
+                    "code": "SESSION_EXPIRED",
+                    "message": "Session has expired, please log in again"
+                }
+            }
+        )
+    
+    # Fetch and return the user
+    user = db.query(User).filter(User.id == session.user_id).first()
+    
+    if not user:
+        # Session exists but user doesn't (should not happen with proper FK constraints)
+        raise HTTPException(
+            status_code=401,
+            detail={
+                "error": {
+                    "code": "USER_NOT_FOUND",
+                    "message": "User not found"
+                }
+            }
+        )
+    
+    return user
+
+
+@router.post("/logout")
+async def logout(
+    response: Response,
+    current_user: User = Depends(get_current_user),
+    session_token: str = Cookie(None, alias="session_token"),
+    db: Session = Depends(get_db)
+):
+    """
+    Log out the current user.
+    
+    Deletes the session token from the database and clears the session cookie.
+    
+    **Validates: Requirements 13.6**
+    
+    Args:
+        response: FastAPI response object for setting cookies
+        current_user: The authenticated user (from dependency)
+        session_token: Session token from HTTP-only cookie
+        db: Database session dependency
+    
+    Returns:
+        dict: Success message
+    """
+    from backend.models import Session as SessionModel
+    
+    # Delete session from database
+    session = db.query(SessionModel).filter(
+        SessionModel.token == session_token
+    ).first()
+    
+    if session:
+        db.delete(session)
+        db.commit()
+    
+    # Clear session cookie by setting it with expired max_age
+    response.set_cookie(
+        key="session_token",
+        value="",
+        httponly=True,
+        max_age=0,  # Expire immediately
+        secure=True,
+        samesite="lax"
+    )
+    
+    return {
+        "message": "Successfully logged out"
     }

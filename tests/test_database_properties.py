@@ -20,13 +20,19 @@ def user_data(draw):
     import uuid
     unique_id = str(uuid.uuid4())
     
+    # Filter strategy to exclude surrogate characters and null bytes
+    valid_text = st.characters(
+        blacklist_categories=('Cs',),  # Exclude surrogates
+        blacklist_characters=['\x00']  # Exclude null bytes
+    )
+    
     return {
         "spotify_id": unique_id,
-        "display_name": draw(st.text(min_size=1, max_size=255, alphabet=st.characters(blacklist_characters=['\x00']))),
+        "display_name": draw(st.text(min_size=1, max_size=255, alphabet=valid_text)),
         "email": draw(st.emails()),
-        "profile_image_url": draw(st.text(max_size=500, alphabet=st.characters(blacklist_characters=['\x00']))),
-        "access_token_encrypted": draw(st.text(min_size=1, max_size=1000, alphabet=st.characters(blacklist_characters=['\x00']))),
-        "refresh_token_encrypted": draw(st.text(min_size=1, max_size=1000, alphabet=st.characters(blacklist_characters=['\x00']))),
+        "profile_image_url": draw(st.text(max_size=500, alphabet=valid_text)),
+        "access_token_encrypted": draw(st.text(min_size=1, max_size=1000, alphabet=valid_text)),
+        "refresh_token_encrypted": draw(st.text(min_size=1, max_size=1000, alphabet=valid_text)),
         "taste_vector": {
             "danceability": draw(st.floats(min_value=0.0, max_value=1.0)),
             "energy": draw(st.floats(min_value=0.0, max_value=1.0)),
@@ -42,10 +48,16 @@ def user_data(draw):
 @st.composite
 def room_data(draw):
     """Generate valid room data."""
+    # Filter strategy to exclude surrogate characters and null bytes
+    valid_text = st.characters(
+        blacklist_categories=('Cs',),  # Exclude surrogates
+        blacklist_characters=['\x00']  # Exclude null bytes
+    )
+    
     return {
-        "name": draw(st.text(min_size=3, max_size=50, alphabet=st.characters(blacklist_characters=['\x00']))),
-        "description": draw(st.text(max_size=300, alphabet=st.characters(blacklist_characters=['\x00']))),
-        "genre_tags": draw(st.lists(st.text(min_size=1, max_size=50, alphabet=st.characters(blacklist_characters=['\x00'])), min_size=1, max_size=10)),
+        "name": draw(st.text(min_size=3, max_size=50, alphabet=valid_text)),
+        "description": draw(st.text(max_size=300, alphabet=valid_text)),
+        "genre_tags": draw(st.lists(st.text(min_size=1, max_size=50, alphabet=valid_text), min_size=1, max_size=10)),
         "taste_vector": {
             "danceability": draw(st.floats(min_value=0.0, max_value=1.0)),
             "energy": draw(st.floats(min_value=0.0, max_value=1.0)),
@@ -145,7 +157,14 @@ def test_room_data_persistence(user_data_val, room_data_val):
 @given(
     user_data_val=user_data(),
     room_data_val=room_data(),
-    message_content=st.text(min_size=1, max_size=500, alphabet=st.characters(blacklist_characters=['\x00']))
+    message_content=st.text(
+        min_size=1, 
+        max_size=500, 
+        alphabet=st.characters(
+            blacklist_categories=('Cs',),
+            blacklist_characters=['\x00']
+        )
+    )
 )
 def test_message_data_persistence(user_data_val, room_data_val, message_content):
     """
@@ -248,7 +267,14 @@ def test_membership_data_persistence(user_data_val, room_data_val):
 @given(
     user_data_val=user_data(),
     room_data_val=room_data(),
-    message_content=st.text(min_size=1, max_size=500, alphabet=st.characters(blacklist_characters=['\x00']))
+    message_content=st.text(
+        min_size=1, 
+        max_size=500, 
+        alphabet=st.characters(
+            blacklist_categories=('Cs',),
+            blacklist_characters=['\x00']
+        )
+    )
 )
 def test_referential_integrity(user_data_val, room_data_val, message_content):
     """

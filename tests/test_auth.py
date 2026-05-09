@@ -47,8 +47,8 @@ def test_spotify_oauth_redirect_missing_client_id():
         
         # Check error message
         data = response.json()
-        assert "error" in data
-        assert data["error"]["code"] == "CONFIGURATION_ERROR"
+        assert "detail" in data
+        assert "Spotify client ID not configured" in data["detail"]
 
 
 def test_spotify_oauth_redirect_missing_redirect_uri():
@@ -64,8 +64,8 @@ def test_spotify_oauth_redirect_missing_redirect_uri():
         
         # Check error message
         data = response.json()
-        assert "error" in data
-        assert data["error"]["code"] == "CONFIGURATION_ERROR"
+        assert "detail" in data
+        assert "Spotify redirect URI not configured" in data["detail"]
 
 
 def test_state_parameter_is_unique():
@@ -167,3 +167,142 @@ def test_oauth_callback_authorization_denied():
     data = response.json()
     assert "detail" in data
     assert data["detail"]["error"]["code"] == "AUTHORIZATION_DENIED"
+
+
+
+def test_get_current_user_missing_token(db_session):
+    """Test that get_current_user raises 401 when session token is missing."""
+    from backend.auth import get_current_user
+    from fastapi import HTTPException
+    
+    with pytest.raises(HTTPException) as exc_info:
+        get_current_user(session_token=None, db=db_session)
+    
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail["error"]["code"] == "MISSING_SESSION_TOKEN"
+
+
+def test_get_current_user_invalid_token(db_session):
+    """Test that get_current_user raises 401 when session token is invalid."""
+    from backend.auth import get_current_user
+    from fastapi import HTTPException
+    
+    with pytest.raises(HTTPException) as exc_info:
+        get_current_user(session_token="invalid_token", db=db_session)
+    
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail["error"]["code"] == "INVALID_SESSION_TOKEN"
+
+
+def test_get_current_user_expired_token(db_session):
+    """Test that get_current_user raises 401 when session token is expired."""
+    from backend.auth import get_current_user
+    from backend.models import User, Session as SessionModel
+    from datetime import datetime, timedelta
+    from fastapi import HTTPException
+    
+    # Create a test user
+    user = User(
+        spotify_id="test_spotify_id",
+        display_name="Test User",
+        email="test@example.com",
+        access_token_encrypted="encrypted_token",
+        taste_vector={"danceability": 0.5}
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    
+    # Create an expired session
+    expired_session = SessionModel(
+        user_id=user.id,
+        token="expired_token",
+        expires_at=datetime.now() - timedelta(days=1)
+    )
+    db_session.add(expired_session)
+    db_session.commit()
+    
+    # Try to use expired token
+    with pytest.raises(HTTPException) as exc_info:
+        get_current_user(session_token="expired_token", db=db_session)
+    
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail["error"]["code"] == "SESSION_EXPIRED"
+    
+    # Verify expired session was deleted
+    session = db_session.query(SessionModel).filter(
+        SessionModel.token == "expired_token"
+    ).first()
+    assert session is None
+
+
+def test_get_current_user_valid_token(db_session):
+    """Test that get_current_user returns user when session token is valid."""
+    from backend.auth import get_current_user
+    from backend.models import User, Session as SessionModel
+    from datetime import datetime, timedelta
+    
+    # Create a test user
+    user = User(
+        spotify_id="test_spotify_id",
+        display_name="Test User",
+        email="test@example.com",
+        access_token_encrypted="encrypted_token",
+        taste_vector={"danceability": 0.5}
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    
+    # Create a valid session
+    valid_session = SessionModel(
+        user_id=user.id,
+        token="valid_token",
+        expires_at=datetime.now() + timedelta(days=7)
+    )
+    db_session.add(valid_session)
+    db_session.commit()
+    
+    # Get current user
+    current_user = get_current_user(session_token="valid_token", db=db_session)
+    
+    # Verify user is returned
+    assert current_user is not None
+    assert current_user.id == user.id
+    assert current_user.spotify_id == "test_spotify_id"
+    assert current_user.display_name == "Test User"
+
+
+def test_get_current_user_session_without_user(db_session):
+    """Test that get_current_user raises 401 when session exists but user doesn't.
+    
+    Note: This test temporarily disables foreign key constraints to simulate
+    a data integrity issue that shouldn't happen in production.
+    """
+    from backend.auth import get_current_user
+    from backend.models import Session as SessionModel
+    from datetime import datetime, timedelta
+    from fastapi import HTTPException
+    from sqlalchemy import text
+    
+    # Temporarily disable foreign key constraints for this test
+    db_session.execute(text("PRAGMA foreign_keys=OFF"))
+    
+    # Create a session with non-existent user_id
+    orphan_session = SessionModel(
+        user_id=99999,  # Non-existent user
+        token="orphan_token",
+        expires_at=datetime.now() + timedelta(days=7)
+    )
+    db_session.add(orphan_session)
+    db_session.commit()
+    
+    # Re-enable foreign key constraints
+    db_session.execute(text("PRAGMA foreign_keys=ON"))
+    
+    # Try to use orphan token
+    with pytest.raises(HTTPException) as exc_info:
+        get_current_user(session_token="orphan_token", db=db_session)
+    
+    assert exc_info.value.status_code == 401
+    assert exc_info.value.detail["error"]["code"] == "USER_NOT_FOUND"

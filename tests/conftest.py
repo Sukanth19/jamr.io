@@ -61,3 +61,24 @@ def setup_test_db():
             os.unlink(_test_db_file)
         except:
             pass
+
+
+@pytest.fixture
+def db_session():
+    """Provide a clean database session for each test."""
+    session = get_test_session()
+    try:
+        yield session
+        session.commit()
+    except Exception:
+        session.rollback()
+        raise
+    finally:
+        # Clean up all data after each test
+        session.query(Session).delete()
+        session.query(RoomMembership).delete()
+        session.query(Message).delete()
+        session.query(Room).delete()
+        session.query(User).delete()
+        session.commit()
+        session.close()
