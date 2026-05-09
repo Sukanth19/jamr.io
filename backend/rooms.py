@@ -9,7 +9,7 @@ from backend.database import get_db
 from backend.models import Room, User
 from backend.auth import get_current_user
 from backend.recommendation_engine import get_recommended_rooms, generate_room_taste_vector
-from backend.validators import validate_room_name, validate_room_description
+from backend.validators import validate_room_name, validate_room_description, validate_spotify_jam_link
 
 # Create router for room endpoints
 router = APIRouter(prefix="/api/rooms", tags=["Rooms"])
@@ -28,6 +28,18 @@ class CreateRoomRequest(BaseModel):
                 "name": "Indie Rock Lovers",
                 "description": "A room for fans of indie and alternative rock music",
                 "genre_tags": ["rock", "indie", "alternative"]
+            }
+        }
+
+
+class UpdateJamLinkRequest(BaseModel):
+    """Request model for updating Spotify Jam link."""
+    link: str = Field(..., description="Spotify Jam link URL")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "link": "https://open.spotify.com/jam/abc123xyz"
             }
         }
 
@@ -411,4 +423,190 @@ async def join_room(
         "room_id": room_id,
         "user_id": current_user.id,
         "joined_at": membership.joined_at.isoformat() if membership.joined_at else None
+    }
+
+
+@router.post("/{room_id}/leave")
+async def leave_room(
+    room_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Leave a room.
+    
+    Requires authentication. Deletes the room_memberships record for the user
+    and room, and decrements the room's user_count. Returns success response.
+    
+    **Validates: Requirements 6.5, 6.7**
+    
+    Args:
+        room_id: ID of the room to leave
+        current_user: Authenticated user (from dependency)
+        db: Database session dependency
+    
+    Returns:
+        dict: Success message with room and user details
+        {
+            "message": str,
+            "room_id": int,
+            "user_id": int
+        }
+    
+    Raises:
+        HTTPException: 404 if room not found or user is not a member
+    """
+    from backend.models import RoomMembership
+    
+    # Check if room exists
+    room = db.query(Room).filter(Room.id == room_id).first()
+    
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "code": "NOT_FOUND",
+                    "message": f"Room with ID {room_id} not found",
+                    "field": "room_id"
+                }
+            }
+        )
+    
+    # Check if user is a member of the room
+    membership = db.query(RoomMembership).filter(
+        RoomMembership.user_id == current_user.id,
+        RoomMembership.room_id == room_id
+    ).first()
+    
+    if not membership:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "code": "NOT_FOUND",
+                    "message": "User is not a member of this room",
+                    "field": "membership"
+                }
+            }
+        )
+    
+    # Delete room membership record
+    db.delete(membership)
+    
+    # Decrement room user count
+    room.user_count -= 1
+    
+    # Commit changes to database
+    db.commit()
+    
+    # Return success response
+    return {
+        "message": "Successfully left room",
+        "room_id": room_id,
+        "user_id": current_user.id
+    }
+
+
+@router.put("/{room_id}/jam-link")
+async def update_jam_link(
+    room_id: int,
+    jam_link_data: UpdateJamLinkRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Update Spotify Jam link for a room.
+    
+    Requires authentication and room membership. Validates the Spotify Jam link
+    format and updates the room's active_jam_link field. Only room members can
+    update the Jam link.
+    
+    **Validates: Requirements 8.1, 8.2, 8.3, 8.7**
+    
+    Args:
+        room_id: ID of the room to update
+        jam_link_data: Request data containing the Spotify Jam link
+        current_user: Authenticated user (from dependency)
+        db: Database session dependency
+    
+    Returns:
+        dict: Success message with updated room details
+        {
+            "message": str,
+            "room_id": int,
+            "active_jam_link": str,
+            "updated_by": int,
+            "updated_at": str
+        }
+    
+    Raises:
+        HTTPException: 404 if room not found
+        HTTPException: 403 if user is not a room member
+        HTTPException: 400 if Spotify Jam link format is invalid
+    """
+    from backend.models import RoomMembership
+    
+    # Check if room exists
+    room = db.query(Room).filter(Room.id == room_id).first()
+    
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "code": "NOT_FOUND",
+                    "message": f"Room with ID {room_id} not found",
+                    "field": "room_id"
+                }
+            }
+        )
+    
+    # Verify user is room member
+    membership = db.query(RoomMembership).filter(
+        RoomMembership.user_id == current_user.id,
+        RoomMembership.room_id == room_id
+    ).first()
+    
+    if not membership:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "error": {
+                    "code": "FORBIDDEN",
+                    "message": "Only room members can update the Spotify Jam link",
+                    "field": "membership"
+                }
+            }
+        )
+    
+    # Validate Spotify Jam link format
+    is_valid, error_message = validate_spotify_jam_link(jam_link_data.link)
+    
+    if not is_valid:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": error_message,
+                    "field": "link"
+                }
+            }
+        )
+    
+    # Update room active_jam_link field
+    room.active_jam_link = jam_link_data.link
+    
+    # Commit changes to database
+    db.commit()
+    db.refresh(room)
+    
+    # Return success response
+    return {
+        "message": "Successfully updated Spotify Jam link",
+        "room_id": room_id,
+        "active_jam_link": room.active_jam_link,
+        "updated_by": current_user.id,
+        "updated_at": room.updated_at.isoformat() if room.updated_at else None
     }
