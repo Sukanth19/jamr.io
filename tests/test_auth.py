@@ -127,3 +127,43 @@ def test_verify_state_invalid():
     
     # Try to verify a non-existent state
     assert verify_state("nonexistent_state") is False
+
+
+def test_oauth_callback_missing_code():
+    """Test that /auth/callback returns error when code is missing."""
+    response = client.get("/auth/callback?state=test_state")
+    
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert data["detail"]["error"]["code"] == "MISSING_CODE"
+
+
+def test_oauth_callback_missing_state():
+    """Test that /auth/callback returns error when state is missing."""
+    response = client.get("/auth/callback?code=test_code")
+    
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert data["detail"]["error"]["code"] == "MISSING_STATE"
+
+
+def test_oauth_callback_invalid_state():
+    """Test that /auth/callback returns error when state is invalid."""
+    response = client.get("/auth/callback?code=test_code&state=invalid_state")
+    
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert data["detail"]["error"]["code"] == "INVALID_STATE"
+
+
+def test_oauth_callback_authorization_denied():
+    """Test that /auth/callback handles user denial of authorization."""
+    response = client.get("/auth/callback?error=access_denied&state=test_state")
+    
+    assert response.status_code == 400
+    data = response.json()
+    assert "detail" in data
+    assert data["detail"]["error"]["code"] == "AUTHORIZATION_DENIED"
