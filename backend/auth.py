@@ -390,15 +390,37 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
                     db.commit()
                     db.refresh(user)
                 
-                # TODO: Create session token and set cookie
-                # For now, redirect to a success page
-                # In a complete implementation, we would:
-                # 1. Generate a session token
-                # 2. Store it in the sessions table
-                # 3. Set an HTTP-only cookie
-                # 4. Redirect to /discover page
+                # Generate unique session token
+                session_token = secrets.token_urlsafe(32)
                 
-                return RedirectResponse(url="/discover", status_code=302)
+                # Calculate session expiration (7 days from now)
+                session_expires_at = datetime.now() + timedelta(days=7)
+                
+                # Store session in database
+                from backend.models import Session as SessionModel
+                
+                session = SessionModel(
+                    user_id=user.id,
+                    token=session_token,
+                    expires_at=session_expires_at
+                )
+                db.add(session)
+                db.commit()
+                
+                # Create redirect response
+                response = RedirectResponse(url="/discover", status_code=302)
+                
+                # Set HTTP-only cookie with session token
+                response.set_cookie(
+                    key="session_token",
+                    value=session_token,
+                    httponly=True,
+                    max_age=7 * 24 * 60 * 60,  # 7 days in seconds
+                    secure=True,  # Only send over HTTPS
+                    samesite="lax"  # CSRF protection
+                )
+                
+                return response
                 
             finally:
                 db.close()
