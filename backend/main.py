@@ -29,6 +29,12 @@ app.add_middleware(
     expose_headers=["*"]
 )
 
+# Import routers
+from backend.auth import router as auth_router
+
+# Include routers
+app.include_router(auth_router)
+
 # Mount static files directory for frontend
 # This will serve HTML, CSS, and JavaScript files
 if os.path.exists("frontend"):
