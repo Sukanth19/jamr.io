@@ -456,5 +456,203 @@ async def leave_room(sid, data):
         db.close()
 
 
+@sio.event
+async def send_message(sid, data):
+    """
+    Handle user sending a chat message.
+    
+    Processes message by:
+    - Extracting room_id and content from event data
+    - Getting user_id from sid mapping
+    - Validating message length (max 500 chars)
+    - Sanitizing message content (escape HTML)
+    - Storing message in database
+    - Broadcasting new_message event to room with message details
+    - Updating room updated_at timestamp
+    
+    **Validates: Requirements 7.2, 7.3, 7.4, 7.6, 7.7, 9.6**
+    
+    Args:
+        sid: Session ID of the client
+        data: Event data containing room_id and content
+        
+    Returns:
+        dict: Success response with message_id or error message
+    """
+    from backend.database import get_session_local
+    from backend.models import Message, Room, User
+    from backend.validators import validate_message_content, sanitize_html
+    
+    # Extract room_id and content from event data
+    room_id = data.get('room_id')
+    content = data.get('content')
+    
+    if not room_id:
+        return {'error': 'room_id is required'}
+    
+    if not content:
+        return {'error': 'content is required'}
+    
+    # Get user_id from sid mapping
+    user_id = active_connections.get(sid)
+    if not user_id:
+        return {'error': 'User not authenticated'}
+    
+    # Validate message length (max 500 chars)
+    is_valid, error_message = validate_message_content(content)
+    if not is_valid:
+        return {'error': error_message}
+    
+    # Sanitize message content (escape HTML)
+    sanitized_content = sanitize_html(content.strip())
+    
+    # Process message in database
+    session_factory = get_session_local()
+    db = session_factory()
+    
+    try:
+        # Get user info for broadcasting
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {'error': 'User not found'}
+        
+        # Get room info
+        room = db.query(Room).filter(Room.id == room_id).first()
+        if not room:
+            return {'error': 'Room not found'}
+        
+        # Store message in database
+        message = Message(
+            room_id=room_id,
+            user_id=user_id,
+            content=sanitized_content
+        )
+        db.add(message)
+        
+        # Update room updated_at timestamp
+        room.updated_at = datetime.now()
+        
+        db.commit()
+        db.refresh(message)
+        
+        print(f"User {user_id} ({user.display_name}) sent message in room {room_id}")
+        
+        # Broadcast new_message event to room with message details
+        await sio.emit('new_message', {
+            'message_id': message.id,
+            'user_id': user_id,
+            'username': user.display_name,
+            'content': sanitized_content,
+            'timestamp': message.created_at.isoformat()
+        }, room=f'room_{room_id}')
+        
+        return {'success': True, 'message_id': message.id}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error sending message in room {room_id} for user {user_id}: {e}")
+        return {'error': f'Failed to send message: {str(e)}'}
+    finally:
+        db.close()
+
+
+@sio.event
+async def update_jam_link(sid, data):
+    """
+    Handle user updating the Spotify Jam link for a room.
+    
+    Processes Jam link update by:
+    - Extracting room_id and link from event data
+    - Getting user_id from sid mapping
+    - Verifying user is room member
+    - Validating Spotify Jam link format
+    - Updating room active_jam_link field
+    - Broadcasting jam_link_updated event to room
+    - Updating room updated_at timestamp
+    
+    **Validates: Requirements 8.2, 8.3, 8.4, 8.7, 9.6**
+    
+    Args:
+        sid: Session ID of the client
+        data: Event data containing room_id and link
+        
+    Returns:
+        dict: Success response or error message
+    """
+    from backend.database import get_session_local
+    from backend.models import Room, User, RoomMembership
+    from backend.validators import validate_spotify_jam_link
+    
+    # Extract room_id and link from event data
+    room_id = data.get('room_id')
+    link = data.get('link')
+    
+    if not room_id:
+        return {'error': 'room_id is required'}
+    
+    if not link:
+        return {'error': 'link is required'}
+    
+    # Get user_id from sid mapping
+    user_id = active_connections.get(sid)
+    if not user_id:
+        return {'error': 'User not authenticated'}
+    
+    # Validate Spotify Jam link format
+    is_valid, error_message = validate_spotify_jam_link(link)
+    if not is_valid:
+        return {'error': error_message}
+    
+    # Process Jam link update in database
+    session_factory = get_session_local()
+    db = session_factory()
+    
+    try:
+        # Get user info for broadcasting
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {'error': 'User not found'}
+        
+        # Get room info
+        room = db.query(Room).filter(Room.id == room_id).first()
+        if not room:
+            return {'error': 'Room not found'}
+        
+        # Verify user is room member
+        membership = db.query(RoomMembership).filter(
+            RoomMembership.user_id == user_id,
+            RoomMembership.room_id == room_id
+        ).first()
+        
+        if not membership:
+            return {'error': 'User is not a member of this room'}
+        
+        # Update room active_jam_link field
+        room.active_jam_link = link
+        
+        # Update room updated_at timestamp
+        room.updated_at = datetime.now()
+        
+        db.commit()
+        
+        print(f"User {user_id} ({user.display_name}) updated Jam link in room {room_id}")
+        
+        # Broadcast jam_link_updated event to room
+        await sio.emit('jam_link_updated', {
+            'room_id': room_id,
+            'link': link,
+            'updated_by': user.display_name
+        }, room=f'room_{room_id}')
+        
+        return {'success': True, 'link': link}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error updating Jam link in room {room_id} for user {user_id}: {e}")
+        return {'error': f'Failed to update Jam link: {str(e)}'}
+    finally:
+        db.close()
+
+
 # Export the Socket.IO server instance and ASGI app
 __all__ = ['sio', 'socket_app']
