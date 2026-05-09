@@ -330,6 +330,48 @@ def cosine_similarity(vector_a: Dict[str, float], vector_b: Dict[str, float]) ->
     return max(0.0, min(1.0, similarity))
 
 
+def get_recommended_rooms(user_taste_vector: Dict[str, float], rooms: List[Dict]) -> List[Dict]:
+    """
+    Rank rooms by similarity to user taste vector and mark highly recommended rooms.
+    
+    Calculates cosine similarity between the user's taste vector and each room's taste vector,
+    sorts rooms by similarity score in descending order, and marks rooms with score > 0.7
+    as highly recommended.
+    
+    Args:
+        user_taste_vector: User's taste vector dictionary with audio feature values.
+        rooms: List of room dictionaries. Each room dict must contain:
+               - 'taste_vector': Dict[str, float] - Room's taste vector
+               - Other room fields (id, name, description, etc.)
+    
+    Returns:
+        List of room dictionaries sorted by similarity score (descending), with added fields:
+        - 'similarity_score': float (0-1) - Cosine similarity to user taste
+        - 'highly_recommended': bool - True if similarity_score > 0.7
+    
+    Requirements: 4.3, 4.4, 4.5
+    """
+    # Calculate similarity score for each room
+    rooms_with_scores = []
+    for room in rooms:
+        room_taste_vector = room.get('taste_vector', {})
+        
+        # Calculate similarity score
+        similarity_score = cosine_similarity(user_taste_vector, room_taste_vector)
+        
+        # Create new room dict with added fields
+        room_with_score = room.copy()
+        room_with_score['similarity_score'] = similarity_score
+        room_with_score['highly_recommended'] = similarity_score > 0.7
+        
+        rooms_with_scores.append(room_with_score)
+    
+    # Sort rooms by similarity score descending
+    rooms_with_scores.sort(key=lambda r: r['similarity_score'], reverse=True)
+    
+    return rooms_with_scores
+
+
 def _default_taste_vector() -> Dict[str, float]:
     """
     Return default taste vector when no audio features are available.
