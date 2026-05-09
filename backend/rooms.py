@@ -259,3 +259,156 @@ async def create_room(
         "created_at": new_room.created_at.isoformat() if new_room.created_at else None,
         "updated_at": new_room.updated_at.isoformat() if new_room.updated_at else None
     }
+
+
+@router.get("/{room_id}")
+async def get_room(
+    room_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get room details by ID.
+    
+    Fetches a single room by its ID and returns all room details including
+    the active Spotify Jam link. Returns 404 if the room doesn't exist.
+    
+    **Validates: Requirements 8.5**
+    
+    Args:
+        room_id: ID of the room to fetch
+        db: Database session dependency
+    
+    Returns:
+        dict: Room details with all fields
+        {
+            "id": int,
+            "name": str,
+            "description": str | None,
+            "genre_tags": List[str],
+            "taste_vector": dict,
+            "owner_id": int,
+            "active_jam_link": str | None,
+            "user_count": int,
+            "created_at": str,
+            "updated_at": str
+        }
+    
+    Raises:
+        HTTPException: 404 if room not found
+    """
+    # Fetch room by ID from database
+    room = db.query(Room).filter(Room.id == room_id).first()
+    
+    # Return 404 if room not found
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "code": "NOT_FOUND",
+                    "message": f"Room with ID {room_id} not found",
+                    "field": "room_id"
+                }
+            }
+        )
+    
+    # Return room details including active_jam_link
+    return {
+        "id": room.id,
+        "name": room.name,
+        "description": room.description,
+        "genre_tags": room.genre_tags,
+        "taste_vector": room.taste_vector,
+        "owner_id": room.owner_id,
+        "active_jam_link": room.active_jam_link,
+        "user_count": room.user_count,
+        "created_at": room.created_at.isoformat() if room.created_at else None,
+        "updated_at": room.updated_at.isoformat() if room.updated_at else None
+    }
+
+
+@router.post("/{room_id}/join")
+async def join_room(
+    room_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Join a room.
+    
+    Requires authentication. Creates a room_memberships record for the user
+    and room, and increments the room's user_count. If the user is already
+    a member of the room, returns success without creating a duplicate record.
+    
+    **Validates: Requirements 6.1, 6.2, 6.4**
+    
+    Args:
+        room_id: ID of the room to join
+        current_user: Authenticated user (from dependency)
+        db: Database session dependency
+    
+    Returns:
+        dict: Success message with room and membership details
+        {
+            "message": str,
+            "room_id": int,
+            "user_id": int,
+            "joined_at": str
+        }
+    
+    Raises:
+        HTTPException: 404 if room not found
+    """
+    from backend.models import RoomMembership
+    
+    # Check if room exists
+    room = db.query(Room).filter(Room.id == room_id).first()
+    
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "code": "NOT_FOUND",
+                    "message": f"Room with ID {room_id} not found",
+                    "field": "room_id"
+                }
+            }
+        )
+    
+    # Check if user is already a member
+    existing_membership = db.query(RoomMembership).filter(
+        RoomMembership.user_id == current_user.id,
+        RoomMembership.room_id == room_id
+    ).first()
+    
+    if existing_membership:
+        # User is already a member, return success
+        return {
+            "message": "Already a member of this room",
+            "room_id": room_id,
+            "user_id": current_user.id,
+            "joined_at": existing_membership.joined_at.isoformat() if existing_membership.joined_at else None
+        }
+    
+    # Create room membership record
+    membership = RoomMembership(
+        user_id=current_user.id,
+        room_id=room_id
+    )
+    db.add(membership)
+    
+    # Increment room user count
+    room.user_count += 1
+    
+    # Commit changes to database
+    db.commit()
+    db.refresh(membership)
+    
+    # Return success response
+    return {
+        "message": "Successfully joined room",
+        "room_id": room_id,
+        "user_id": current_user.id,
+        "joined_at": membership.joined_at.isoformat() if membership.joined_at else None
+    }
