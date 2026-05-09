@@ -610,3 +610,91 @@ async def update_jam_link(
         "updated_by": current_user.id,
         "updated_at": room.updated_at.isoformat() if room.updated_at else None
     }
+
+
+@router.get("/{room_id}/messages")
+async def get_messages(
+    room_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Get recent messages for a room.
+    
+    Fetches the most recent 50 messages for the specified room, ordered by
+    created_at descending (newest first). Returns messages with user information
+    including username and user_id.
+    
+    **Validates: Requirements 7.5**
+    
+    Args:
+        room_id: ID of the room to fetch messages for
+        db: Database session dependency
+    
+    Returns:
+        dict: List of messages with user information
+        {
+            "messages": [
+                {
+                    "id": int,
+                    "room_id": int,
+                    "user_id": int | None,
+                    "username": str | None,
+                    "content": str,
+                    "created_at": str
+                }
+            ],
+            "total": int,
+            "room_id": int
+        }
+    
+    Raises:
+        HTTPException: 404 if room not found
+    """
+    from backend.models import Message
+    
+    # Check if room exists
+    room = db.query(Room).filter(Room.id == room_id).first()
+    
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "error": {
+                    "code": "NOT_FOUND",
+                    "message": f"Room with ID {room_id} not found",
+                    "field": "room_id"
+                }
+            }
+        )
+    
+    # Fetch most recent 50 messages for room, ordered by created_at descending
+    messages = db.query(Message).filter(
+        Message.room_id == room_id
+    ).order_by(
+        Message.created_at.desc()
+    ).limit(50).all()
+    
+    # Build response with user information
+    messages_data = []
+    for message in messages:
+        # Fetch user information if user_id is not null
+        username = None
+        if message.user_id:
+            user = db.query(User).filter(User.id == message.user_id).first()
+            if user:
+                username = user.display_name
+        
+        messages_data.append({
+            "id": message.id,
+            "room_id": message.room_id,
+            "user_id": message.user_id,
+            "username": username,
+            "content": message.content,
+            "created_at": message.created_at.isoformat() if message.created_at else None
+        })
+    
+    return {
+        "messages": messages_data,
+        "total": len(messages_data),
+        "room_id": room_id
+    }
