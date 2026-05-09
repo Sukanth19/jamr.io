@@ -217,5 +217,244 @@ async def disconnect(sid):
             del active_connections[sid]
 
 
+@sio.event
+async def join_room(sid, data):
+    """
+    Handle user joining a room.
+    
+    Processes room join by:
+    - Extracting room_id from event data
+    - Getting user_id from sid mapping
+    - Creating room_memberships record
+    - Incrementing room user_count
+    - Joining Socket.IO room namespace
+    - Broadcasting user_joined event to room
+    - Broadcasting user_count_updated event to room
+    - Broadcasting active_users_updated event to room
+    
+    **Validates: Requirements 6.1, 6.2, 6.3, 6.4, 9.1, 9.4**
+    
+    Args:
+        sid: Session ID of the client
+        data: Event data containing room_id
+        
+    Returns:
+        dict: Success response or error message
+    """
+    from backend.database import get_session_local
+    from backend.models import RoomMembership, Room, User
+    from sqlalchemy.exc import IntegrityError
+    
+    # Extract room_id from event data
+    room_id = data.get('room_id')
+    if not room_id:
+        return {'error': 'room_id is required'}
+    
+    # Get user_id from sid mapping
+    user_id = active_connections.get(sid)
+    if not user_id:
+        return {'error': 'User not authenticated'}
+    
+    # Process room join in database
+    session_factory = get_session_local()
+    db = session_factory()
+    
+    try:
+        # Get user info for broadcasting
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {'error': 'User not found'}
+        
+        # Get room info
+        room = db.query(Room).filter(Room.id == room_id).first()
+        if not room:
+            return {'error': 'Room not found'}
+        
+        # Check if membership already exists
+        existing_membership = db.query(RoomMembership).filter(
+            RoomMembership.user_id == user_id,
+            RoomMembership.room_id == room_id
+        ).first()
+        
+        # Create room_memberships record if it doesn't exist
+        if not existing_membership:
+            membership = RoomMembership(
+                user_id=user_id,
+                room_id=room_id
+            )
+            db.add(membership)
+            
+            # Increment room user_count
+            room.user_count += 1
+            room.updated_at = datetime.now()
+            
+            db.commit()
+            print(f"User {user_id} ({user.display_name}) joined room {room_id}")
+        else:
+            print(f"User {user_id} ({user.display_name}) already in room {room_id}")
+        
+        # Join Socket.IO room namespace
+        await sio.enter_room(sid, f'room_{room_id}')
+        
+        # Get all active users in the room for broadcasting
+        active_users = db.query(User, RoomMembership).join(
+            RoomMembership, User.id == RoomMembership.user_id
+        ).filter(
+            RoomMembership.room_id == room_id
+        ).all()
+        
+        active_users_list = [
+            {'user_id': u.id, 'username': u.display_name}
+            for u, _ in active_users
+        ]
+        
+        # Broadcast user_joined event to room
+        await sio.emit('user_joined', {
+            'user_id': user_id,
+            'username': user.display_name,
+            'room_id': room_id
+        }, room=f'room_{room_id}')
+        
+        # Broadcast user_count_updated event to room
+        await sio.emit('user_count_updated', {
+            'room_id': room_id,
+            'count': room.user_count
+        }, room=f'room_{room_id}')
+        
+        # Broadcast active_users_updated event to room
+        await sio.emit('active_users_updated', {
+            'room_id': room_id,
+            'users': active_users_list
+        }, room=f'room_{room_id}')
+        
+        return {'success': True, 'room_id': room_id}
+        
+    except IntegrityError as e:
+        db.rollback()
+        print(f"Integrity error joining room {room_id} for user {user_id}: {e}")
+        return {'error': 'Failed to join room: membership constraint violation'}
+    except Exception as e:
+        db.rollback()
+        print(f"Error joining room {room_id} for user {user_id}: {e}")
+        return {'error': f'Failed to join room: {str(e)}'}
+    finally:
+        db.close()
+
+
+@sio.event
+async def leave_room(sid, data):
+    """
+    Handle user leaving a room.
+    
+    Processes room leave by:
+    - Extracting room_id from event data
+    - Getting user_id from sid mapping
+    - Deleting room_memberships record
+    - Decrementing room user_count
+    - Leaving Socket.IO room namespace
+    - Broadcasting user_left event to room
+    - Broadcasting user_count_updated event to room
+    - Broadcasting active_users_updated event to room
+    
+    **Validates: Requirements 6.5, 6.6, 6.7, 9.1, 9.5**
+    
+    Args:
+        sid: Session ID of the client
+        data: Event data containing room_id
+        
+    Returns:
+        dict: Success response or error message
+    """
+    from backend.database import get_session_local
+    from backend.models import RoomMembership, Room, User
+    
+    # Extract room_id from event data
+    room_id = data.get('room_id')
+    if not room_id:
+        return {'error': 'room_id is required'}
+    
+    # Get user_id from sid mapping
+    user_id = active_connections.get(sid)
+    if not user_id:
+        return {'error': 'User not authenticated'}
+    
+    # Process room leave in database
+    session_factory = get_session_local()
+    db = session_factory()
+    
+    try:
+        # Get user info for broadcasting
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {'error': 'User not found'}
+        
+        # Get room info
+        room = db.query(Room).filter(Room.id == room_id).first()
+        if not room:
+            return {'error': 'Room not found'}
+        
+        # Find and delete room_memberships record
+        membership = db.query(RoomMembership).filter(
+            RoomMembership.user_id == user_id,
+            RoomMembership.room_id == room_id
+        ).first()
+        
+        if membership:
+            # Delete the membership record
+            db.delete(membership)
+            
+            # Decrement room user_count
+            room.user_count = max(0, room.user_count - 1)
+            room.updated_at = datetime.now()
+            
+            db.commit()
+            print(f"User {user_id} ({user.display_name}) left room {room_id}")
+        else:
+            print(f"User {user_id} ({user.display_name}) was not in room {room_id}")
+        
+        # Leave Socket.IO room namespace
+        await sio.leave_room(sid, f'room_{room_id}')
+        
+        # Get all remaining active users in the room for broadcasting
+        active_users = db.query(User, RoomMembership).join(
+            RoomMembership, User.id == RoomMembership.user_id
+        ).filter(
+            RoomMembership.room_id == room_id
+        ).all()
+        
+        active_users_list = [
+            {'user_id': u.id, 'username': u.display_name}
+            for u, _ in active_users
+        ]
+        
+        # Broadcast user_left event to room
+        await sio.emit('user_left', {
+            'user_id': user_id,
+            'username': user.display_name,
+            'room_id': room_id
+        }, room=f'room_{room_id}')
+        
+        # Broadcast user_count_updated event to room
+        await sio.emit('user_count_updated', {
+            'room_id': room_id,
+            'count': room.user_count
+        }, room=f'room_{room_id}')
+        
+        # Broadcast active_users_updated event to room
+        await sio.emit('active_users_updated', {
+            'room_id': room_id,
+            'users': active_users_list
+        }, room=f'room_{room_id}')
+        
+        return {'success': True, 'room_id': room_id}
+        
+    except Exception as e:
+        db.rollback()
+        print(f"Error leaving room {room_id} for user {user_id}: {e}")
+        return {'error': f'Failed to leave room: {str(e)}'}
+    finally:
+        db.close()
+
+
 # Export the Socket.IO server instance and ASGI app
 __all__ = ['sio', 'socket_app']
