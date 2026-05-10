@@ -4,7 +4,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -82,11 +82,16 @@ async def health_check():
 @app.get("/", tags=["Root"])
 async def root():
     """
-    Root endpoint.
+    Root endpoint - Serve landing page.
     
     Returns:
-        dict: Welcome message and API information
+        FileResponse: The landing page HTML file
     """
+    # Check if frontend directory and index.html exist
+    if os.path.exists("frontend/index.html"):
+        return FileResponse("frontend/index.html")
+    
+    # Fallback to JSON response if frontend not found
     return {
         "message": "Welcome to jamr.io API",
         "docs": "/docs",

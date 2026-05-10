@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>jamr.io - Music Matchmaking</title>
     <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/landing.css">
 </head>
 <body>
     <div class="container">
@@ -19,11 +20,33 @@
                 <p>Discover rooms that match your taste and connect with people who share your passion for music.</p>
                 <a href="/auth/spotify" class="btn btn-primary">Login with Spotify</a>
             </section>
+
+            <!-- Statistics Section -->
+            <section class="statistics">
+                <div class="stat-card">
+                    <div class="stat-number" id="active-users">-</div>
+                    <div class="stat-label">Active Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="active-rooms">-</div>
+                    <div class="stat-label">Active Rooms</div>
+                </div>
+            </section>
+
+            <!-- Featured Rooms Section -->
+            <section class="featured-rooms">
+                <h2>Featured Rooms</h2>
+                <div id="rooms-container" class="rooms-grid">
+                    <div class="loading">Loading rooms...</div>
+                </div>
+            </section>
         </main>
         
         <footer>
             <p>&copy; 2024 jamr.io - All rights reserved</p>
         </footer>
     </div>
+    
+    <script src="/static/js/landing.js"></script>
 </body>
 </html>
