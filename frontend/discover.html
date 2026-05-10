@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discover Rooms - jamr.io</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/discover.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>jamr.io</h1>
+            <p>Discover your music community</p>
+        </header>
+        
+        <main>
+            <!-- Search and Filter Section -->
+            <section class="search-filter-section">
+                <div class="search-bar">
+                    <input 
+                        type="text" 
+                        id="search-input" 
+                        placeholder="Search rooms by name or tags..." 
+                        aria-label="Search rooms"
+                    >
+                </div>
+                
+                <div class="filter-section">
+                    <h3>Filter by Genre</h3>
+                    <div class="genre-filters">
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="rock">
+                            <span>Rock</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="pop">
+                            <span>Pop</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="hip-hop">
+                            <span>Hip-Hop</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="electronic">
+                            <span>Electronic</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="jazz">
+                            <span>Jazz</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="classical">
+                            <span>Classical</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="indie">
+                            <span>Indie</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="metal">
+                            <span>Metal</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="country">
+                            <span>Country</span>
+                        </label>
+                        <label class="genre-checkbox">
+                            <input type="checkbox" name="genre" value="r&b">
+                            <span>R&B</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Create Room Button -->
+            <section class="actions-section">
+                <button id="create-room-btn" class="btn btn-primary">Create Room</button>
+            </section>
+
+            <!-- Room Cards Container -->
+            <section class="rooms-section">
+                <h2>Rooms</h2>
+                <div id="rooms-container" class="rooms-grid">
+                    <div class="loading">Loading rooms...</div>
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>&copy; 2024 jamr.io - All rights reserved</p>
+        </footer>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div id="create-room-modal" class="modal" role="dialog" aria-labelledby="modal-title" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Create a Room</h2>
+                <button class="modal-close" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="create-room-form">
+                    <div class="form-group">
+                        <label for="room-name">Room Name *</label>
+                        <input 
+                            type="text" 
+                            id="room-name" 
+                            name="name" 
+                            required 
+                            minlength="3" 
+                            maxlength="50"
+                            placeholder="Enter room name (3-50 characters)"
+                        >
+                        <span class="form-hint">3-50 characters</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="room-description">Description</label>
+                        <textarea 
+                            id="room-description" 
+                            name="description" 
+                            maxlength="300"
+                            rows="4"
+                            placeholder="Describe your room (max 300 characters)"
+                        ></textarea>
+                        <span class="form-hint">Max 300 characters</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Genre Tags *</label>
+                        <div class="genre-tags-selection">
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="rock">
+                                <span>Rock</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="pop">
+                                <span>Pop</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="hip-hop">
+                                <span>Hip-Hop</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="electronic">
+                                <span>Electronic</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="jazz">
+                                <span>Jazz</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="classical">
+                                <span>Classical</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="indie">
+                                <span>Indie</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="metal">
+                                <span>Metal</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="country">
+                                <span>Country</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="genre_tags" value="r&b">
+                                <span>R&B</span>
+                            </label>
+                        </div>
+                        <span class="form-hint">Select at least one genre</span>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary modal-cancel">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Room</button>
+                    </div>
+                    
+                    <div id="form-error" class="form-error" role="alert" aria-live="polite"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/discover.js"></script>
+</body>
+</html>

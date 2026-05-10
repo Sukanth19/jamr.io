@@ -1,0 +1,567 @@
+/* Room Discovery Page Styles */
+
+/* Search and Filter Section */
+.search-filter-section {
+    margin-bottom: 40px;
+}
+
+.search-bar {
+    margin-bottom: 30px;
+}
+
+.search-bar input {
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 1rem;
+    background-color: #282828;
+    border: 2px solid #404040;
+    border-radius: 8px;
+    color: #ffffff;
+    transition: border-color 0.3s ease;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: #1DB954;
+}
+
+.search-bar input::placeholder {
+    color: #b3b3b3;
+}
+
+/* Filter Section */
+.filter-section {
+    background-color: #1a1a1a;
+    padding: 20px;
+    border-radius: 8px;
+    border: 1px solid #282828;
+}
+
+.filter-section h3 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    color: #1DB954;
+}
+
+.genre-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.genre-checkbox {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background-color: #282828;
+    border: 2px solid #404040;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.genre-checkbox:hover {
+    border-color: #1DB954;
+    background-color: #2a2a2a;
+}
+
+.genre-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.genre-checkbox input[type="checkbox"]:checked + span {
+    color: #1DB954;
+    font-weight: 600;
+}
+
+.genre-checkbox input[type="checkbox"]:checked ~ span::before {
+    content: '✓ ';
+}
+
+.genre-checkbox span {
+    color: #ffffff;
+    font-size: 0.95rem;
+    transition: color 0.2s ease;
+}
+
+/* Actions Section */
+.actions-section {
+    margin-bottom: 30px;
+    text-align: right;
+}
+
+/* Rooms Section */
+.rooms-section h2 {
+    font-size: 2rem;
+    margin-bottom: 25px;
+    color: #ffffff;
+}
+
+.rooms-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 24px;
+    margin-bottom: 40px;
+}
+
+/* Room Card */
+.room-card {
+    background-color: #1a1a1a;
+    border: 1px solid #282828;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.room-card:hover {
+    transform: translateY(-4px);
+    border-color: #1DB954;
+    box-shadow: 0 8px 16px rgba(29, 185, 84, 0.2);
+}
+
+.room-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.room-card-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffffff;
+    margin: 0;
+    flex: 1;
+}
+
+/* Highly Recommended Badge */
+.badge {
+    display: inline-block;
+    padding: 4px 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    border-radius: 12px;
+    letter-spacing: 0.5px;
+}
+
+.badge-recommended {
+    background: linear-gradient(135deg, #1DB954 0%, #1ed760 100%);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(29, 185, 84, 0.4);
+    animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 2px 8px rgba(29, 185, 84, 0.4);
+    }
+    50% {
+        box-shadow: 0 2px 12px rgba(29, 185, 84, 0.6);
+    }
+}
+
+.room-card-description {
+    color: #b3b3b3;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 15px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.room-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.room-tag {
+    display: inline-block;
+    padding: 4px 12px;
+    background-color: #282828;
+    color: #1DB954;
+    font-size: 0.85rem;
+    border-radius: 12px;
+    border: 1px solid #404040;
+}
+
+.room-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 12px;
+    border-top: 1px solid #282828;
+}
+
+.room-user-count {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #b3b3b3;
+    font-size: 0.9rem;
+}
+
+.room-user-count::before {
+    content: '👥';
+    font-size: 1rem;
+}
+
+/* Loading and Empty States */
+.loading {
+    text-align: center;
+    padding: 60px 20px;
+    color: #b3b3b3;
+    font-size: 1.1rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #b3b3b3;
+}
+
+.empty-state h3 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #ffffff;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    overflow-y: auto;
+    animation: fadeIn 0.3s ease;
+}
+
+.modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.modal-content {
+    background-color: #1a1a1a;
+    border-radius: 12px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    border-bottom: 1px solid #282828;
+}
+
+.modal-header h2 {
+    font-size: 1.8rem;
+    color: #ffffff;
+    margin: 0;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #b3b3b3;
+    font-size: 2rem;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background-color: #282828;
+    color: #ffffff;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 24px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: #ffffff;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.form-group input[type="text"],
+.form-group textarea {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 1rem;
+    background-color: #282828;
+    border: 2px solid #404040;
+    border-radius: 8px;
+    color: #ffffff;
+    font-family: inherit;
+    transition: border-color 0.3s ease;
+}
+
+.form-group input[type="text"]:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #1DB954;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: #b3b3b3;
+}
+
+/* Genre Tags Selection in Modal */
+.genre-tags-selection {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.genre-tag-checkbox {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    background-color: #282828;
+    border: 2px solid #404040;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.genre-tag-checkbox:hover {
+    border-color: #1DB954;
+    background-color: #2a2a2a;
+}
+
+.genre-tag-checkbox input[type="checkbox"] {
+    display: none;
+}
+
+.genre-tag-checkbox input[type="checkbox"]:checked + span {
+    color: #1DB954;
+    font-weight: 600;
+}
+
+.genre-tag-checkbox span {
+    color: #ffffff;
+    font-size: 0.9rem;
+    transition: color 0.2s ease;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 30px;
+}
+
+.btn-secondary {
+    background-color: #282828;
+    color: #ffffff;
+}
+
+.btn-secondary:hover {
+    background-color: #404040;
+}
+
+/* Form Error */
+.form-error {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background-color: #3a1a1a;
+    border: 1px solid #ff4444;
+    border-radius: 8px;
+    color: #ff6666;
+    font-size: 0.9rem;
+    display: none;
+}
+
+.form-error.active {
+    display: block;
+}
+
+/* Responsive Design - Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+    .rooms-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 20px;
+    }
+    
+    .room-card-title {
+        font-size: 1.2rem;
+    }
+}
+
+/* Responsive Design - Mobile (< 768px) */
+@media (max-width: 768px) {
+    .search-filter-section {
+        margin-bottom: 30px;
+    }
+    
+    .filter-section {
+        padding: 16px;
+    }
+    
+    .filter-section h3 {
+        font-size: 1.1rem;
+    }
+    
+    .genre-filters {
+        gap: 8px;
+    }
+    
+    .genre-checkbox {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .actions-section {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    
+    .rooms-section h2 {
+        font-size: 1.6rem;
+        margin-bottom: 20px;
+    }
+    
+    .rooms-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    
+    .room-card {
+        padding: 16px;
+    }
+    
+    .room-card-title {
+        font-size: 1.15rem;
+    }
+    
+    .badge {
+        font-size: 0.7rem;
+        padding: 3px 8px;
+    }
+    
+    .modal-content {
+        max-width: 100%;
+        margin: 10px;
+    }
+    
+    .modal-header {
+        padding: 20px;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .modal-body {
+        padding: 20px;
+    }
+    
+    .genre-tags-selection {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 8px;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .form-actions .btn {
+        width: 100%;
+    }
+}
+
+/* Responsive Design - Small Mobile (< 480px) */
+@media (max-width: 480px) {
+    .search-bar input {
+        padding: 12px 16px;
+        font-size: 0.95rem;
+    }
+    
+    .genre-checkbox {
+        padding: 5px 10px;
+        font-size: 0.8rem;
+    }
+    
+    .room-card-title {
+        font-size: 1.1rem;
+    }
+    
+    .room-card-description {
+        font-size: 0.9rem;
+    }
+    
+    .room-tag {
+        font-size: 0.8rem;
+        padding: 3px 10px;
+    }
+    
+    .genre-tags-selection {
+        grid-template-columns: 1fr 1fr;
+    }
+}
