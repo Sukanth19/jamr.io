@@ -54,6 +54,14 @@ async def startup_event():
     """Initialize application on startup."""
     # Import here to avoid circular imports
     from backend.database import init_db
+    from backend.error_handlers import register_exception_handlers
+    from backend.logging_config import configure_logging
+    
+    # Configure logging
+    configure_logging()
+    
+    # Register exception handlers
+    register_exception_handlers(app)
     
     # Initialize database (create tables if they don't exist)
     # In production, use Alembic migrations instead

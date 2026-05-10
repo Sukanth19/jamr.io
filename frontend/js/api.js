@@ -165,40 +165,144 @@ function escapeHtml(text) {
 
 /**
  * Show error message to user
- * @param {string} message - Error message
- * @param {HTMLElement} container - Container element (optional)
+ * 
+ * Displays error messages in toast notifications (default) or inline alerts.
+ * Toast notifications auto-dismiss after 5 seconds and appear in the top-right corner.
+ * Inline alerts replace the container content and remain until cleared.
+ * 
+ * **Validates: Requirements 10.7**
+ * 
+ * @param {string} message - Error message to display
+ * @param {HTMLElement} container - Optional container element for inline display
  */
 function showError(message, container = null) {
     const errorDiv = document.createElement('div');
-    errorDiv.className = 'error';
-    errorDiv.textContent = message;
+    errorDiv.className = 'error-message';
+    errorDiv.setAttribute('role', 'alert');
+    errorDiv.setAttribute('aria-live', 'assertive');
+    
+    // Create error icon
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'error-icon';
+    iconSpan.textContent = '⚠️';
+    iconSpan.setAttribute('aria-hidden', 'true');
+    
+    // Create error text
+    const textSpan = document.createElement('span');
+    textSpan.className = 'error-text';
+    textSpan.textContent = message;
+    
+    errorDiv.appendChild(iconSpan);
+    errorDiv.appendChild(textSpan);
     
     if (container) {
+        // Inline error display
         container.innerHTML = '';
         container.appendChild(errorDiv);
     } else {
-        // Show as toast notification (simple implementation)
+        // Toast notification display
+        errorDiv.classList.add('error-toast');
         errorDiv.style.position = 'fixed';
         errorDiv.style.top = '20px';
         errorDiv.style.right = '20px';
         errorDiv.style.zIndex = '9999';
         errorDiv.style.maxWidth = '400px';
+        errorDiv.style.padding = '12px 16px';
+        errorDiv.style.backgroundColor = '#dc3545';
+        errorDiv.style.color = '#ffffff';
+        errorDiv.style.borderRadius = '4px';
+        errorDiv.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
+        errorDiv.style.display = 'flex';
+        errorDiv.style.alignItems = 'center';
+        errorDiv.style.gap = '8px';
+        errorDiv.style.animation = 'slideInRight 0.3s ease-out';
+        
+        // Add close button
+        const closeButton = document.createElement('button');
+        closeButton.className = 'error-close';
+        closeButton.textContent = '×';
+        closeButton.setAttribute('aria-label', 'Close error message');
+        closeButton.style.marginLeft = 'auto';
+        closeButton.style.background = 'none';
+        closeButton.style.border = 'none';
+        closeButton.style.color = '#ffffff';
+        closeButton.style.fontSize = '24px';
+        closeButton.style.cursor = 'pointer';
+        closeButton.style.padding = '0';
+        closeButton.style.lineHeight = '1';
+        closeButton.onclick = () => errorDiv.remove();
+        
+        errorDiv.appendChild(closeButton);
         document.body.appendChild(errorDiv);
         
         // Auto-remove after 5 seconds
         setTimeout(() => {
-            errorDiv.remove();
+            if (errorDiv.parentNode) {
+                errorDiv.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => errorDiv.remove(), 300);
+            }
         }, 5000);
     }
 }
 
 /**
  * Show loading state
- * @param {HTMLElement} container - Container element
- * @param {string} message - Loading message
+ * 
+ * Displays a loading indicator with an optional message while async operations
+ * are in progress. The loading state replaces the container content.
+ * 
+ * **Validates: Requirements 10.6**
+ * 
+ * @param {HTMLElement} container - Container element to show loading state in
+ * @param {string} message - Loading message (default: 'Loading...')
  */
 function showLoading(container, message = 'Loading...') {
-    container.innerHTML = `<div class="loading">${escapeHtml(message)}</div>`;
+    const loadingDiv = document.createElement('div');
+    loadingDiv.className = 'loading-state';
+    loadingDiv.setAttribute('role', 'status');
+    loadingDiv.setAttribute('aria-live', 'polite');
+    
+    // Create spinner
+    const spinner = document.createElement('div');
+    spinner.className = 'loading-spinner';
+    spinner.setAttribute('aria-hidden', 'true');
+    spinner.style.width = '40px';
+    spinner.style.height = '40px';
+    spinner.style.border = '4px solid #f3f3f3';
+    spinner.style.borderTop = '4px solid #3498db';
+    spinner.style.borderRadius = '50%';
+    spinner.style.animation = 'spin 1s linear infinite';
+    spinner.style.margin = '0 auto 12px';
+    
+    // Create loading text
+    const textSpan = document.createElement('span');
+    textSpan.className = 'loading-text';
+    textSpan.textContent = escapeHtml(message);
+    
+    loadingDiv.appendChild(spinner);
+    loadingDiv.appendChild(textSpan);
+    
+    container.innerHTML = '';
+    container.appendChild(loadingDiv);
+}
+
+/**
+ * Hide loading state
+ * 
+ * Removes the loading indicator from a container. Should be called after
+ * async operations complete (success or failure).
+ * 
+ * **Validates: Requirements 10.6**
+ * 
+ * @param {HTMLElement} container - Container element to clear loading state from
+ */
+function hideLoading(container) {
+    if (container) {
+        const loadingState = container.querySelector('.loading-state');
+        if (loadingState) {
+            loadingState.remove();
+        }
+    }
 }
 
 /**
