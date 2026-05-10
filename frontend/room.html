@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room - jamr.io</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/room.css">
+</head>
+<body>
+    <div class="room-container">
+        <!-- Room Header -->
+        <header class="room-header">
+            <div class="room-info">
+                <h1 id="room-name">Loading...</h1>
+                <p id="room-description"></p>
+                <div id="room-tags" class="room-tags"></div>
+            </div>
+            <div class="room-actions">
+                <button id="leave-room-btn" class="btn btn-secondary">Leave Room</button>
+            </div>
+        </header>
+
+        <div class="room-content">
+            <!-- Active Users Sidebar -->
+            <aside class="active-users-sidebar">
+                <h2>Active Users <span id="user-count" class="user-count-badge">0</span></h2>
+                <ul id="active-users-list" class="active-users-list">
+                    <li class="loading">Loading users...</li>
+                </ul>
+            </aside>
+
+            <!-- Main Chat Area -->
+            <main class="chat-main">
+                <!-- Spotify Jam Link Section -->
+                <section class="jam-link-section">
+                    <h3>Spotify Jam Link</h3>
+                    <div id="jam-link-display" class="jam-link-display">
+                        <p class="no-link">No active Jam link. Share one below!</p>
+                    </div>
+                    <div class="jam-link-input-group">
+                        <input 
+                            type="url" 
+                            id="jam-link-input" 
+                            placeholder="Paste Spotify Jam link here..."
+                            aria-label="Spotify Jam link"
+                        >
+                        <button id="update-jam-link-btn" class="btn btn-primary">Share Link</button>
+                    </div>
+                    <p class="jam-link-hint">Share a Spotify Jam link so everyone can listen together!</p>
+                </section>
+
+                <!-- Chat Messages Area -->
+                <section class="chat-section">
+                    <div id="chat-messages" class="chat-messages">
+                        <div class="loading">Loading messages...</div>
+                    </div>
+                    
+                    <!-- Message Input -->
+                    <div class="message-input-container">
+                        <textarea 
+                            id="message-input" 
+                            placeholder="Type your message..." 
+                            maxlength="500"
+                            rows="2"
+                            aria-label="Message input"
+                        ></textarea>
+                        <div class="message-input-actions">
+                            <span id="char-count" class="char-count">0/500</span>
+                            <button id="send-message-btn" class="btn btn-primary">Send</button>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Error Toast Container -->
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Socket.IO Client Library -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    
+    <!-- Application Scripts -->
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/socket.js"></script>
+    <script src="/static/js/room.js"></script>
+</body>
+</html>
