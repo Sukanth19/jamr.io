@@ -122,7 +122,7 @@ def test_property_11_room_description_too_long_rejected(description):
 
 
 @settings(max_examples=100)
-@given(description=st.text(max_size=300, alphabet=st.characters(blacklist_characters=['\x00'])))
+@given(description=st.text(max_size=300, alphabet=st.characters(blacklist_characters=['\x00'], blacklist_categories=['Cs'])))
 def test_property_11_room_description_valid_range_accepted(description):
     """
     Property 11: Room Description Validation (Part 2 - Valid Range)
@@ -171,7 +171,7 @@ def test_property_11_room_description_none_accepted():
 @settings(max_examples=100)
 @given(
     name=st.text(min_size=3, max_size=50, alphabet=st.characters(min_codepoint=33, max_codepoint=126)),
-    description=st.text(max_size=300, alphabet=st.characters(blacklist_characters=['\x00'])),
+    description=st.text(max_size=300, alphabet=st.characters(blacklist_characters=['\x00'], blacklist_categories=['Cs'])),
     genre_tags=st.lists(
         st.sampled_from(['rock', 'pop', 'hip-hop', 'electronic', 'jazz', 'classical', 'indie', 'metal']),
         min_size=1,
@@ -305,7 +305,7 @@ def test_property_12_room_persistence_with_null_description(name, genre_tags):
 @settings(max_examples=100)
 @given(
     name=st.text(min_size=3, max_size=50, alphabet=st.characters(min_codepoint=33, max_codepoint=126)),
-    description=st.text(max_size=300, alphabet=st.characters(blacklist_characters=['\x00'])),
+    description=st.text(max_size=300, alphabet=st.characters(blacklist_characters=['\x00'], blacklist_categories=['Cs'])),
     genre_tags=st.lists(
         st.sampled_from(['rock', 'pop', 'hip-hop', 'electronic', 'jazz', 'classical', 'indie', 'metal']),
         min_size=1,

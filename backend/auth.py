@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
 from backend.database import get_db
+from backend.models import User
+from backend.recommendation_engine import map_spotify_genres, generate_taste_vector_from_genres
 
 # Load environment variables
 load_dotenv()
@@ -201,7 +203,10 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
         )
     
     # Validate Spotify configuration
-    if not SPOTIFY_CLIENT_ID:
+    spotify_client_id = os.getenv("SPOTIFY_CLIENT_ID")
+    spotify_redirect_uri = os.getenv("SPOTIFY_REDIRECT_URI")
+    
+    if not spotify_client_id:
         raise HTTPException(
             status_code=500,
             detail={
@@ -224,7 +229,7 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
             }
         )
     
-    if not SPOTIFY_REDIRECT_URI:
+    if not spotify_redirect_uri:
         raise HTTPException(
             status_code=500,
             detail={
@@ -240,8 +245,8 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
     token_data = {
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": SPOTIFY_REDIRECT_URI,
-        "client_id": SPOTIFY_CLIENT_ID,
+        "redirect_uri": spotify_redirect_uri,
+        "client_id": spotify_client_id,
         "client_secret": spotify_client_secret
     }
     
@@ -339,6 +344,23 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
                     # Generate taste vector from audio features
                     taste_vector = _generate_taste_vector(audio_features)
             
+            # Fall back to top artists' genres (audio-features returns 403
+            # for Spotify apps created after November 2024)
+            if not taste_vector:
+                top_artists_response = await client.get(
+                    "https://api.spotify.com/v1/me/top/artists?limit=50&time_range=medium_term",
+                    headers={"Authorization": f"Bearer {access_token}"}
+                )
+
+                if top_artists_response.status_code == 200:
+                    spotify_genres = [
+                        genre
+                        for artist in top_artists_response.json().get("items", [])
+                        for genre in artist.get("genres", [])
+                    ]
+                    if map_spotify_genres(spotify_genres):
+                        taste_vector = generate_taste_vector_from_genres(spotify_genres)
+
             # If no taste vector generated, use default
             if not taste_vector:
                 taste_vector = _default_taste_vector()
@@ -403,13 +425,17 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
                 # Create redirect response
                 response = RedirectResponse(url="/discover", status_code=302)
                 
+                # Get environment (default to development)
+                environment = os.getenv("ENVIRONMENT", "development")
+                is_production = environment == "production"
+                
                 # Set HTTP-only cookie with session token
                 response.set_cookie(
                     key="session_token",
                     value=session_token,
                     httponly=True,
                     max_age=7 * 24 * 60 * 60,  # 7 days in seconds
-                    secure=True,  # Only send over HTTPS
+                    secure=is_production,  # Only send over HTTPS in production
                     samesite="lax"  # CSRF protection
                 )
                 
@@ -428,6 +454,9 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
                 }
             }
         )
+    except HTTPException:
+        # Re-raise HTTPExceptions as-is
+        raise
     except Exception as e:
         # Log the error (in production, use proper logging)
         print(f"OAuth callback error: {str(e)}")
@@ -813,13 +842,17 @@ async def logout(
         db.delete(session)
         db.commit()
     
+    # Get environment (default to development)
+    environment = os.getenv("ENVIRONMENT", "development")
+    is_production = environment == "production"
+    
     # Clear session cookie by setting it with expired max_age
     response.set_cookie(
         key="session_token",
         value="",
         httponly=True,
         max_age=0,  # Expire immediately
-        secure=True,
+        secure=is_production,  # Only send over HTTPS in production
         samesite="lax"
     )
     

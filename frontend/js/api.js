@@ -277,7 +277,7 @@ function showLoading(container, message = 'Loading...') {
     // Create loading text
     const textSpan = document.createElement('span');
     textSpan.className = 'loading-text';
-    textSpan.textContent = escapeHtml(message);
+    textSpan.textContent = message;
     
     loadingDiv.appendChild(spinner);
     loadingDiv.appendChild(textSpan);

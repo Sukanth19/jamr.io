@@ -26,11 +26,13 @@ from dotenv import load_dotenv
 from datetime import datetime
 from http.cookies import SimpleCookie
 
+from backend.rate_limiter import RateLimiter
+
 # Load environment variables
 load_dotenv()
 
 # Get CORS origins from environment
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000").split(",")
 
 # Create Socket.IO AsyncServer with CORS configuration
 sio = socketio.AsyncServer(
@@ -40,14 +42,19 @@ sio = socketio.AsyncServer(
     engineio_logger=False
 )
 
-# Create ASGI application wrapper
+# Create ASGI application wrapper. It is mounted at /socket.io in main.py,
+# so it accepts every path under the mount (socketio_path=None) instead of
+# expecting a second /socket.io/ prefix.
 socket_app = socketio.ASGIApp(
     socketio_server=sio,
-    socketio_path='socket.io'
+    socketio_path=None
 )
 
 # Module-level mapping of sid → user_id for active connections
 active_connections = {}
+
+# Chat rate limit: max messages per user within the window
+message_rate_limiter = RateLimiter(max_requests=10, window_seconds=10)
 
 
 # Socket.IO event handlers
@@ -154,7 +161,14 @@ async def disconnect(sid):
     if not user_id:
         print(f"Client disconnected: {sid} (no user mapping found)")
         return
-    
+
+    # Keep memberships if the user still has another connection (e.g. another tab)
+    other_sids = [s for s, uid in active_connections.items() if uid == user_id and s != sid]
+    if other_sids:
+        del active_connections[sid]
+        print(f"Client disconnected: {sid} (user_id: {user_id} still has {len(other_sids)} connection(s))")
+        return
+
     # Clean up user state in database
     session_factory = get_session_local()
     db = session_factory()
@@ -464,8 +478,8 @@ async def send_message(sid, data):
     Processes message by:
     - Extracting room_id and content from event data
     - Getting user_id from sid mapping
+    - Enforcing the per-user message rate limit
     - Validating message length (max 500 chars)
-    - Sanitizing message content (escape HTML)
     - Storing message in database
     - Broadcasting new_message event to room with message details
     - Updating room updated_at timestamp
@@ -481,7 +495,7 @@ async def send_message(sid, data):
     """
     from backend.database import get_session_local
     from backend.models import Message, Room, User
-    from backend.validators import validate_message_content, sanitize_html
+    from backend.validators import validate_message_content
     
     # Extract room_id and content from event data
     room_id = data.get('room_id')
@@ -497,14 +511,18 @@ async def send_message(sid, data):
     user_id = active_connections.get(sid)
     if not user_id:
         return {'error': 'User not authenticated'}
-    
+
+    # Enforce per-user message rate limit
+    if not message_rate_limiter.check_rate_limit(user_id):
+        return {'error': 'You are sending messages too fast. Please slow down.'}
+
     # Validate message length (max 500 chars)
     is_valid, error_message = validate_message_content(content)
     if not is_valid:
         return {'error': error_message}
     
-    # Sanitize message content (escape HTML)
-    sanitized_content = sanitize_html(content.strip())
+    # Trim message content (stored raw; the frontend escapes on render)
+    trimmed_content = content.strip()
     
     # Process message in database
     session_factory = get_session_local()
@@ -525,7 +543,7 @@ async def send_message(sid, data):
         message = Message(
             room_id=room_id,
             user_id=user_id,
-            content=sanitized_content
+            content=trimmed_content
         )
         db.add(message)
         
@@ -542,7 +560,7 @@ async def send_message(sid, data):
             'message_id': message.id,
             'user_id': user_id,
             'username': user.display_name,
-            'content': sanitized_content,
+            'content': trimmed_content,
             'timestamp': message.created_at.isoformat()
         }, room=f'room_{room_id}')
         
@@ -593,13 +611,16 @@ async def update_jam_link(sid, data):
     if not link:
         return {'error': 'link is required'}
     
+    # Trim whitespace from link
+    trimmed_link = link.strip()
+    
     # Get user_id from sid mapping
     user_id = active_connections.get(sid)
     if not user_id:
         return {'error': 'User not authenticated'}
     
     # Validate Spotify Jam link format
-    is_valid, error_message = validate_spotify_jam_link(link)
+    is_valid, error_message = validate_spotify_jam_link(trimmed_link)
     if not is_valid:
         return {'error': error_message}
     
@@ -628,7 +649,7 @@ async def update_jam_link(sid, data):
             return {'error': 'User is not a member of this room'}
         
         # Update room active_jam_link field
-        room.active_jam_link = link
+        room.active_jam_link = trimmed_link
         
         # Update room updated_at timestamp
         room.updated_at = datetime.now()
@@ -640,11 +661,11 @@ async def update_jam_link(sid, data):
         # Broadcast jam_link_updated event to room
         await sio.emit('jam_link_updated', {
             'room_id': room_id,
-            'link': link,
+            'link': trimmed_link,
             'updated_by': user.display_name
         }, room=f'room_{room_id}')
         
-        return {'success': True, 'link': link}
+        return {'success': True, 'link': trimmed_link}
         
     except Exception as e:
         db.rollback()

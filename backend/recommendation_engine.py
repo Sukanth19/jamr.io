@@ -286,6 +286,71 @@ def generate_room_taste_vector(genre_tags: List[str]) -> Dict[str, float]:
     return taste_vector
 
 
+# Keywords in Spotify artist genres (e.g. "uk hip hop", "edm", "neo soul")
+# that map onto our base genres. Checked in addition to the base genre names.
+GENRE_ALIASES = {
+    'hip hop': 'hip-hop',
+    'rap': 'hip-hop',
+    'trap': 'hip-hop',
+    'edm': 'electronic',
+    'house': 'electronic',
+    'techno': 'electronic',
+    'trance': 'electronic',
+    'dubstep': 'electronic',
+    'drum and bass': 'electronic',
+    'rnb': 'r&b',
+    'r&b': 'r&b',
+    'reggaeton': 'latin',
+    'salsa': 'latin',
+    'bachata': 'latin',
+    'singer-songwriter': 'folk',
+    'americana': 'country',
+    'bluegrass': 'country',
+    'orchestra': 'classical',
+    'baroque': 'classical',
+    'hardcore': 'punk',
+}
+
+
+def map_spotify_genres(spotify_genres: List[str]) -> List[str]:
+    """
+    Map free-form Spotify artist genres onto the base genres in GENRE_VECTORS.
+
+    A single Spotify genre can map to several base genres (e.g. "indie rock"
+    → indie, rock). Duplicates are kept so frequent genres weigh more.
+
+    Args:
+        spotify_genres: Genre strings from Spotify artist objects.
+
+    Returns:
+        List of base genre keys (may contain duplicates).
+    """
+    mapped = []
+    for genre in spotify_genres:
+        genre = genre.lower()
+        matches = {base for base in GENRE_VECTORS if base in genre}
+        matches |= {base for alias, base in GENRE_ALIASES.items() if alias in genre}
+        mapped.extend(sorted(matches))
+    return mapped
+
+
+def generate_taste_vector_from_genres(spotify_genres: List[str]) -> Dict[str, float]:
+    """
+    Generate a user taste vector from their top artists' Spotify genres.
+
+    Used as a fallback when Spotify's audio-features endpoint is unavailable
+    (it returns 403 for apps created after November 2024). Produces a vector
+    in the same space as room taste vectors.
+
+    Args:
+        spotify_genres: Genre strings collected from the user's top artists.
+
+    Returns:
+        Taste vector dictionary, or the default vector if no genres map.
+    """
+    return generate_room_taste_vector(map_spotify_genres(spotify_genres))
+
+
 def cosine_similarity(vector_a: Dict[str, float], vector_b: Dict[str, float]) -> float:
     """
     Calculate cosine similarity between two taste vectors.

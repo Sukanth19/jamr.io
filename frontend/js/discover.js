@@ -144,7 +144,7 @@ function createRoomCard(room) {
     
     // Add click handler to navigate to room
     card.addEventListener('click', () => {
-        window.location.href = `/room.html?id=${room.id}`;
+        window.location.href = `/room?id=${room.id}`;
     });
     
     // Build card HTML
@@ -249,7 +249,7 @@ async function handleCreateRoom(e) {
         closeCreateRoomModal();
         
         // Navigate to the new room
-        window.location.href = `/room.html?id=${newRoom.id}`;
+        window.location.href = `/room?id=${newRoom.id}`;
     } catch (error) {
         console.error('Error creating room:', error);
         showFormError(error.message || 'Failed to create room. Please try again.');

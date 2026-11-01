@@ -3,6 +3,7 @@
 import pytest
 import os
 import tempfile
+from hypothesis import settings
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from backend.database import Base
@@ -10,6 +11,11 @@ from backend.models import User, Room, Message, RoomMembership, Session
 
 # Configure pytest-asyncio
 pytest_plugins = ('pytest_asyncio',)
+
+# Disable Hypothesis' per-example deadline: database-backed examples
+# occasionally exceed 200ms under load, causing flaky failures
+settings.register_profile("default", deadline=None)
+settings.load_profile("default")
 
 # Use a temporary file for SQLite testing
 _test_db_file = None
@@ -64,6 +70,17 @@ def setup_test_db():
             os.unlink(_test_db_file)
         except:
             pass
+
+
+@pytest.fixture(autouse=True)
+def clear_active_connections():
+    """Reset global Socket.IO state (sid mapping, chat rate limits) between tests."""
+    from backend.socketio_server import active_connections, message_rate_limiter
+    active_connections.clear()
+    message_rate_limiter.clear_all()
+    yield
+    active_connections.clear()
+    message_rate_limiter.clear_all()
 
 
 @pytest.fixture

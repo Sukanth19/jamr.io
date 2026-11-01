@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch, AsyncMock
 from backend.models import User, Room, Message, Session as SessionModel, RoomMembership
-from backend.socketio_server import sio, active_connections
+from backend.socketio_server import sio, active_connections, message_rate_limiter
 
 
 @pytest.fixture
@@ -140,9 +140,12 @@ async def test_send_message_validates_length(db_session, test_user, test_room):
 
 
 @pytest.mark.asyncio
-async def test_send_message_sanitizes_html(db_session, test_user, test_room):
+async def test_send_message_stores_content_raw(db_session, test_user, test_room):
     """
-    Test that send_message sanitizes HTML content to prevent XSS.
+    Test that send_message stores content unescaped.
+    
+    XSS is prevented on render (the frontend uses textContent / escapeHtml),
+    so escaping here would double-escape text like "R&B".
     
     Validates: Requirements 7.6
     """
@@ -181,11 +184,10 @@ async def test_send_message_sanitizes_html(db_session, test_user, test_room):
     # Verify success response
     assert result['success'] is True
     
-    # Verify message was sanitized in database
+    # Verify message was stored as sent
     message = db_session.query(Message).filter(Message.id == result['message_id']).first()
     assert message is not None
-    assert '<script>' not in message.content
-    assert '&lt;script&gt;' in message.content
+    assert message.content == message_content
     
     # Cleanup
     del active_connections[sid]
@@ -259,3 +261,36 @@ async def test_send_message_requires_content(db_session, test_user, test_room):
     
     # Cleanup
     del active_connections[sid]
+
+
+@pytest.mark.asyncio
+async def test_send_message_rate_limited(db_session, test_user, test_room):
+    """
+    Test that send_message rejects messages beyond the per-user rate limit.
+    """
+    membership = RoomMembership(
+        user_id=test_user.id,
+        room_id=test_room.id
+    )
+    db_session.add(membership)
+    db_session.commit()
+    
+    sid = "test_sid_rate_limit"
+    active_connections[sid] = test_user.id
+    room_id = test_room.id
+    
+    with patch('backend.database.get_session_local') as mock_get_session, \
+         patch('backend.socketio_server.sio') as mock_sio:
+        
+        mock_get_session.return_value = lambda: db_session
+        mock_sio.emit = AsyncMock()
+        
+        results = [
+            await sio.handlers['/']['send_message'](sid, {'room_id': room_id, 'content': f'msg {i}'})
+            for i in range(message_rate_limiter.max_requests + 1)
+        ]
+    
+    # All messages within the limit succeed, the next one is rejected
+    assert all(r.get('success') for r in results[:-1])
+    assert 'error' in results[-1]
+    assert 'too fast' in results[-1]['error']

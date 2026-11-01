@@ -19,7 +19,7 @@ async function initRoomPage() {
     if (!currentRoomId) {
         showError('Invalid room ID');
         setTimeout(() => {
-            window.location.href = '/static/discover.html';
+            window.location.href = '/discover';
         }, 2000);
         return;
     }
@@ -81,7 +81,7 @@ async function loadRoomData() {
         
         // Redirect to discover page after error
         setTimeout(() => {
-            window.location.href = '/static/discover.html';
+            window.location.href = '/discover';
         }, 3000);
     }
 }
@@ -318,23 +318,19 @@ function updateJamLinkDisplay(link) {
 /**
  * Leave room
  */
-async function leaveRoom() {
-    try {
-        // Emit leave event via Socket.IO
-        emitEvent('leave_room', { room_id: currentRoomId });
-        
-        // Call API to leave room
-        await apiRequest(`/api/rooms/${currentRoomId}/leave`, {
-            method: 'POST'
-        });
-        
+function leaveRoom() {
+    // Leave via Socket.IO only: it removes the membership and notifies the
+    // room. Wait for the server's ack before redirecting.
+    emitEvent('leave_room', { room_id: currentRoomId }, (response) => {
+        if (response && response.error) {
+            console.error('Error leaving room:', response.error);
+            showToast(response.error, 'error');
+            return;
+        }
+
         // Redirect to discover page
-        window.location.href = '/static/discover.html';
-        
-    } catch (error) {
-        console.error('Error leaving room:', error);
-        showToast(error.message, 'error');
-    }
+        window.location.href = '/discover';
+    });
 }
 
 /**

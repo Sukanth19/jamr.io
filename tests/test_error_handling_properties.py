@@ -204,7 +204,8 @@ def test_validation_error_for_short_room_name(room_name):
 # Feature: jamr-io-mvp, Property 47: Validation Error Display
 # **Validates: Requirements 14.5**
 @given(
-    room_name=st.text(min_size=51, max_size=100),
+    # Length is checked after trimming, so require > 50 non-padding chars
+    room_name=st.text(min_size=51, max_size=100).filter(lambda s: len(s.strip()) > 50),
 )
 @settings(max_examples=100)
 def test_validation_error_for_long_room_name(room_name):
@@ -233,7 +234,8 @@ def test_validation_error_for_long_room_name(room_name):
 # Feature: jamr-io-mvp, Property 47: Validation Error Display
 # **Validates: Requirements 14.5**
 @given(
-    message_content=st.text(min_size=501, max_size=1000),
+    # Length is checked after trimming, so require > 500 non-padding chars
+    message_content=st.text(min_size=501, max_size=1000).filter(lambda s: len(s.strip()) > 500),
 )
 @settings(max_examples=100)
 def test_validation_error_for_long_message(message_content):

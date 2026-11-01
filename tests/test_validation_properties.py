@@ -329,3 +329,161 @@ def test_spotify_jam_link_with_special_chars_rejected():
     
     assert is_valid is False
     assert len(error_message) > 0
+
+
+# Property 49: Input Sanitization
+# **Validates: Requirements 15.3**
+@settings(max_examples=100)
+@given(
+    text=st.text(min_size=1, max_size=500, alphabet=st.characters(blacklist_characters=['\x00']))
+)
+def test_input_sanitization_trims_whitespace(text):
+    """
+    Property 49: Input Sanitization (Part 1 - Whitespace Trimming)
+    
+    For any user input (message content, room name, room description),
+    the platform must trim whitespace before processing.
+    
+    This test verifies that the validation functions handle whitespace correctly.
+    """
+    # Add leading and trailing whitespace
+    padded_text = f"  {text}  "
+    
+    # Test room name validation with whitespace
+    if 3 <= len(text.strip()) <= 50:
+        is_valid, _ = validate_room_name(padded_text)
+        # Should be valid because validation trims whitespace
+        assert is_valid is True
+    
+    # Test message content validation with whitespace
+    if 1 <= len(text.strip()) <= 500:
+        is_valid, _ = validate_message_content(padded_text)
+        # Should be valid because validation trims whitespace
+        assert is_valid is True
+
+
+@settings(max_examples=100)
+@given(
+    text=st.text(min_size=1, max_size=500)
+)
+def test_input_sanitization_escapes_html_in_all_inputs(text):
+    """
+    Property 49: Input Sanitization (Part 2 - HTML Escaping)
+    
+    For any user input containing HTML special characters,
+    the platform must escape these characters before processing.
+    
+    This test verifies that sanitize_html is applied consistently.
+    """
+    sanitized = sanitize_html(text)
+    
+    # Verify HTML special characters are escaped
+    dangerous_chars = ['<', '>', '&', '"', "'"]
+    for char in dangerous_chars:
+        if char in text:
+            # The character should either be escaped or not present in raw form
+            # (it might be escaped to &lt;, &gt;, &amp;, &quot;, &#x27;)
+            assert char not in sanitized or (
+                '&lt;' in sanitized or 
+                '&gt;' in sanitized or 
+                '&amp;' in sanitized or
+                '&quot;' in sanitized or
+                '&#x27;' in sanitized
+            )
+
+
+@settings(max_examples=100)
+@given(
+    room_name=st.text(min_size=3, max_size=50, alphabet=st.characters(min_codepoint=33, max_codepoint=126)),
+    room_description=st.text(min_size=0, max_size=300, alphabet=st.characters(blacklist_characters=['\x00'])),
+    message_content=st.text(min_size=1, max_size=500, alphabet=st.characters(blacklist_characters=['\x00']))
+)
+def test_input_sanitization_validates_before_processing(room_name, room_description, message_content):
+    """
+    Property 49: Input Sanitization (Part 3 - Validation Before Processing)
+    
+    For any user input, the platform must validate the input before processing.
+    This ensures that invalid inputs are rejected early.
+    """
+    # Skip whitespace-only messages
+    assume(message_content.strip() != "")
+    
+    # Validate room name
+    is_valid_name, _ = validate_room_name(room_name)
+    assert is_valid_name is True
+    
+    # Validate room description
+    is_valid_desc, _ = validate_room_description(room_description)
+    assert is_valid_desc is True
+    
+    # Validate message content
+    is_valid_msg, _ = validate_message_content(message_content)
+    assert is_valid_msg is True
+
+
+def test_input_sanitization_handles_xss_payloads():
+    """
+    Property 49: Input Sanitization (Part 4 - XSS Prevention)
+    
+    For any user input containing common XSS payloads,
+    the platform must sanitize the input to prevent XSS attacks.
+    """
+    xss_payloads = [
+        ("<script>alert('XSS')</script>", True),  # Has angle brackets
+        ("<img src=x onerror=alert('XSS')>", True),  # Has angle brackets
+        ("<iframe src='javascript:alert(\"XSS\")'></iframe>", True),  # Has angle brackets
+        ("javascript:alert('XSS')", False),  # No angle brackets, but quotes are escaped
+        ("<svg onload=alert('XSS')>", True),  # Has angle brackets
+        ("<body onload=alert('XSS')>", True),  # Has angle brackets
+        ("<input onfocus=alert('XSS') autofocus>", True),  # Has angle brackets
+        ("<select onfocus=alert('XSS') autofocus>", True),  # Has angle brackets
+        ("<textarea onfocus=alert('XSS') autofocus>", True),  # Has angle brackets
+        ("<marquee onstart=alert('XSS')>", True),  # Has angle brackets
+    ]
+    
+    for payload, has_angle_brackets in xss_payloads:
+        sanitized = sanitize_html(payload)
+        
+        # Verify that the dangerous tags are escaped (angle brackets converted to entities)
+        # html.escape() converts < to &lt; and > to &gt;, which prevents HTML execution
+        assert '<script>' not in sanitized
+        assert '<img' not in sanitized
+        assert '<iframe' not in sanitized
+        assert '<svg' not in sanitized
+        assert '<body' not in sanitized
+        assert '<input' not in sanitized
+        assert '<select' not in sanitized
+        assert '<textarea' not in sanitized
+        assert '<marquee' not in sanitized
+        
+        # Verify that HTML entities are present for payloads with angle brackets
+        if has_angle_brackets:
+            assert '&lt;' in sanitized or '&gt;' in sanitized
+
+
+def test_input_sanitization_preserves_safe_content():
+    """
+    Property 49: Input Sanitization (Part 5 - Safe Content Preservation)
+    
+    For any user input that doesn't contain dangerous characters,
+    the platform should preserve the content as-is (or with minimal changes).
+    """
+    safe_inputs = [
+        "Hello, world!",
+        "This is a test message",
+        "Room for music lovers",
+        "Let's jam together",
+        "123456789",
+        "user@example.com",
+    ]
+    
+    for safe_input in safe_inputs:
+        sanitized = sanitize_html(safe_input)
+        
+        # Safe content should be preserved (though quotes might be escaped)
+        # The core content should remain readable
+        assert len(sanitized) >= len(safe_input)
+        # Check that alphanumeric characters are preserved
+        for char in safe_input:
+            if char.isalnum() or char == ' ':
+                assert char in sanitized

@@ -91,7 +91,7 @@ async def get_rooms(
     
     # Apply search filter if provided
     if search:
-        search_term = f"%{search}%"
+        search_term = f"%{search.strip()}%"
         query = query.filter(
             (Room.name.ilike(search_term)) | 
             (Room.description.ilike(search_term))
@@ -239,13 +239,16 @@ async def create_room(
     # Trim whitespace from room name
     trimmed_name = room_data.name.strip()
     
+    # Trim room description (stored raw; the frontend escapes on render)
+    trimmed_description = room_data.description.strip() if room_data.description else None
+    
     # Generate room taste vector from genre tags
     taste_vector = generate_room_taste_vector(room_data.genre_tags)
     
     # Create new room
     new_room = Room(
         name=trimmed_name,
-        description=room_data.description,
+        description=trimmed_description or None,
         owner_id=current_user.id,
         genre_tags=room_data.genre_tags,
         taste_vector=taste_vector,
@@ -495,7 +498,7 @@ async def leave_room(
     db.delete(membership)
     
     # Decrement room user count
-    room.user_count -= 1
+    room.user_count = max(0, room.user_count - 1)
     
     # Commit changes to database
     db.commit()
@@ -581,7 +584,8 @@ async def update_jam_link(
         )
     
     # Validate Spotify Jam link format
-    is_valid, error_message = validate_spotify_jam_link(jam_link_data.link)
+    trimmed_link = jam_link_data.link.strip()
+    is_valid, error_message = validate_spotify_jam_link(trimmed_link)
     
     if not is_valid:
         raise HTTPException(
@@ -596,7 +600,7 @@ async def update_jam_link(
         )
     
     # Update room active_jam_link field
-    room.active_jam_link = jam_link_data.link
+    room.active_jam_link = trimmed_link
     
     # Commit changes to database
     db.commit()

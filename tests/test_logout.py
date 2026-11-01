@@ -145,8 +145,11 @@ def test_logout_expired_session_token(db_session):
         app.dependency_overrides.clear()
 
 
-def test_logout_clears_cookie_with_correct_attributes(db_session):
-    """Test that logout clears cookie with correct security attributes."""
+def test_logout_clears_cookie_with_correct_attributes(db_session, monkeypatch):
+    """Test that logout clears cookie with correct security attributes (production)."""
+    # Secure cookies are only set in production
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    
     # Override database dependency
     app.dependency_overrides[get_db] = lambda: db_session
     

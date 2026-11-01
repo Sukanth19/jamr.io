@@ -7,7 +7,23 @@ from fastapi.testclient import TestClient
 from backend.main import app
 from backend.models import Room, User, Message
 from backend.recommendation_engine import generate_room_taste_vector
+from backend.database import get_db
 from tests.conftest import get_test_session
+
+
+@pytest.fixture(autouse=True)
+def override_get_db():
+    """Point the app at the SQLite test database."""
+    def _get_test_db():
+        db = get_test_session()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = _get_test_db
+    yield
+    app.dependency_overrides.clear()
 
 
 def create_test_user(db_session, spotify_id=None):

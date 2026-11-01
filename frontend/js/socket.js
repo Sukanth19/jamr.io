@@ -131,16 +131,21 @@ function isSocketConnected() {
  * Emit event with connection check
  * @param {string} eventName - Event name
  * @param {Object} data - Event data
+ * @param {Function} [ack] - Optional callback receiving the server's response
  * @returns {boolean} - Whether event was emitted
  */
-function emitEvent(eventName, data) {
+function emitEvent(eventName, data, ack) {
     if (!isSocketConnected()) {
         console.warn('Socket not connected, cannot emit event:', eventName);
         showToast('Not connected to server. Please wait...', 'warning');
         return false;
     }
-    
-    socket.emit(eventName, data);
+
+    if (ack) {
+        socket.emit(eventName, data, ack);
+    } else {
+        socket.emit(eventName, data);
+    }
     return true;
 }
 

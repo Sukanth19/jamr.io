@@ -266,9 +266,52 @@ async def test_disconnect_cleans_up_user_state(test_user, test_room, test_member
         
         # Verify Socket.IO room was left
         mock_sio.leave_room.assert_called_once_with(sid, f'room_{room_id}')
-        
+
         # Verify sid mapping was cleaned up
         assert sid not in active_connections
+
+
+@pytest.mark.asyncio
+async def test_disconnect_keeps_memberships_when_user_has_other_connection(test_user, test_room, test_membership, db_session):
+    """Test that closing one tab doesn't remove the user from rooms open in another."""
+    sid = "test_sid_tab_1"
+    other_sid = "test_sid_tab_2"
+
+    user_id = test_user.id
+    room_id = test_room.id
+
+    active_connections[sid] = user_id
+    active_connections[other_sid] = user_id
+
+    try:
+        with patch('backend.socketio_server.sio') as mock_sio, \
+             patch('backend.database.get_session_local') as mock_get_session:
+
+            mock_sio.emit = AsyncMock()
+            mock_sio.leave_room = AsyncMock()
+            mock_get_session.return_value = lambda: db_session
+
+            await disconnect(sid)
+
+            # Membership and count are untouched
+            membership = db_session.query(RoomMembership).filter(
+                RoomMembership.user_id == user_id,
+                RoomMembership.room_id == room_id
+            ).first()
+            assert membership is not None
+
+            room = db_session.query(Room).filter(Room.id == room_id).first()
+            assert room.user_count == 1
+
+            # No user_left broadcast
+            mock_sio.emit.assert_not_called()
+
+            # Only the disconnected sid is unmapped
+            assert sid not in active_connections
+            assert active_connections[other_sid] == user_id
+    finally:
+        active_connections.pop(sid, None)
+        active_connections.pop(other_sid, None)
 
 
 @pytest.mark.asyncio

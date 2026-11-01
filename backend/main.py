@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, FileResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -21,7 +23,7 @@ app = FastAPI(
 from backend.socketio_server import socket_app
 
 # Configure CORS middleware
-CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://127.0.0.1:8000,http://localhost:8000").split(",")
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +33,41 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["*"]
 )
+
+
+# Security headers middleware
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    """
+    Middleware to add security headers to all responses.
+    
+    Adds the following headers:
+    - Strict-Transport-Security (HSTS): Forces HTTPS connections
+    - X-Content-Type-Options: Prevents MIME type sniffing
+    - X-Frame-Options: Prevents clickjacking
+    - X-XSS-Protection: Enables XSS filtering in older browsers
+    """
+    
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        
+        # Get environment (default to development)
+        environment = os.getenv("ENVIRONMENT", "development")
+        
+        # Only add HSTS header in production (requires HTTPS)
+        if environment == "production":
+            # HSTS: Force HTTPS for 1 year, include subdomains
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        
+        # Add other security headers (safe for both dev and prod)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        
+        return response
+
+
+# Add security headers middleware
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Import routers
 from backend.auth import router as auth_router
@@ -105,6 +142,18 @@ async def root():
         "docs": "/docs",
         "health": "/health"
     }
+
+
+@app.get("/discover", tags=["Pages"], include_in_schema=False)
+async def discover_page():
+    """Serve the room discovery page."""
+    return FileResponse("frontend/discover.html")
+
+
+@app.get("/room", tags=["Pages"], include_in_schema=False)
+async def room_page():
+    """Serve the room chat page (room ID is passed as ?id=<room_id>)."""
+    return FileResponse("frontend/room.html")
 
 
 # Error handlers
