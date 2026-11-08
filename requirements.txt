@@ -18,11 +18,10 @@ cryptography==41.0.7
 pytest==7.4.3
 pytest-asyncio==0.21.1
 hypothesis==6.92.1
-httpx==0.25.2
 beautifulsoup4==4.12.3
 
 # Spotify API
-requests==2.31.0
+httpx==0.25.2
 
 # Utilities
 python-dotenv==1.0.0
