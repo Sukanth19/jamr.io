@@ -4,11 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Room - jamr.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/room.css">
 </head>
 <body>
-    <div class="room-container">
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <div class="topbar-left">
+                <a href="/discover" class="brand">jamr<span>.io</span></a>
+                <a href="/discover" class="back-link">← All rooms</a>
+            </div>
+            <div class="topbar-user" id="topbar-user" hidden>
+                <span class="avatar" id="topbar-avatar" aria-hidden="true"></span>
+                <span class="topbar-user-name" id="topbar-user-name"></span>
+                <button class="btn btn-ghost btn-sm" id="logout-btn" type="button">Log out</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="container room-container">
         <!-- Room Header -->
         <header class="room-header">
             <div class="room-info">
@@ -17,61 +34,63 @@
                 <div id="room-tags" class="room-tags"></div>
             </div>
             <div class="room-actions">
-                <button id="leave-room-btn" class="btn btn-secondary">Leave Room</button>
+                <span class="live-count"><span id="user-count" class="user-count-badge">0</span> here now</span>
+                <button id="leave-room-btn" class="btn btn-secondary btn-sm">Leave room</button>
             </div>
         </header>
 
         <div class="room-content">
-            <!-- Active Users Sidebar -->
-            <aside class="active-users-sidebar">
-                <h2>Active Users <span id="user-count" class="user-count-badge">0</span></h2>
-                <ul id="active-users-list" class="active-users-list">
-                    <li class="loading">Loading users...</li>
-                </ul>
-            </aside>
-
             <!-- Main Chat Area -->
             <main class="chat-main">
-                <!-- Spotify Jam Link Section -->
-                <section class="jam-link-section">
-                    <h3>Spotify Jam Link</h3>
-                    <div id="jam-link-display" class="jam-link-display">
-                        <p class="no-link">No active Jam link. Share one below!</p>
-                    </div>
-                    <div class="jam-link-input-group">
-                        <input 
-                            type="url" 
-                            id="jam-link-input" 
-                            placeholder="Paste Spotify Jam link here..."
-                            aria-label="Spotify Jam link"
-                        >
-                        <button id="update-jam-link-btn" class="btn btn-primary">Share Link</button>
-                    </div>
-                    <p class="jam-link-hint">Share a Spotify Jam link so everyone can listen together!</p>
-                </section>
-
-                <!-- Chat Messages Area -->
                 <section class="chat-section">
-                    <div id="chat-messages" class="chat-messages">
+                    <div id="chat-messages" class="chat-messages" aria-live="polite">
                         <div class="loading">Loading messages...</div>
                     </div>
-                    
+
                     <!-- Message Input -->
                     <div class="message-input-container">
-                        <textarea 
-                            id="message-input" 
-                            placeholder="Type your message..." 
+                        <textarea
+                            id="message-input"
+                            class="input"
+                            placeholder="Message the room…"
                             maxlength="500"
-                            rows="2"
+                            rows="1"
                             aria-label="Message input"
                         ></textarea>
-                        <div class="message-input-actions">
-                            <span id="char-count" class="char-count">0/500</span>
-                            <button id="send-message-btn" class="btn btn-primary">Send</button>
-                        </div>
+                        <button id="send-message-btn" class="btn btn-primary">Send</button>
+                        <span id="char-count" class="char-count">0/500</span>
                     </div>
                 </section>
             </main>
+
+            <!-- Sidebar: Jam link and active users -->
+            <aside class="room-sidebar">
+                <!-- Spotify Jam Link Section -->
+                <section class="panel jam-link-section">
+                    <h3>Listen together</h3>
+                    <div id="jam-link-display" class="jam-link-display">
+                        <p class="no-link">No Jam running. Start one in Spotify and share the link.</p>
+                    </div>
+                    <div class="jam-link-input-group">
+                        <input
+                            type="url"
+                            id="jam-link-input"
+                            class="input"
+                            placeholder="https://open.spotify.com/jam/…"
+                            aria-label="Spotify Jam link"
+                        >
+                        <button id="update-jam-link-btn" class="btn btn-secondary btn-sm">Share</button>
+                    </div>
+                </section>
+
+                <!-- Active Users -->
+                <section class="panel active-users-sidebar">
+                    <h3>Here now</h3>
+                    <ul id="active-users-list" class="active-users-list">
+                        <li class="loading">Loading users...</li>
+                    </ul>
+                </section>
+            </aside>
         </div>
     </div>
 
@@ -80,7 +99,7 @@
 
     <!-- Socket.IO Client Library -->
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
-    
+
     <!-- Application Scripts -->
     <script src="/static/js/api.js"></script>
     <script src="/static/js/socket.js"></script>

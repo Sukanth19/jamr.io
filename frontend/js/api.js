@@ -186,7 +186,7 @@ function escapeHtml(text) {
  * Show error message to user
  * 
  * Displays error messages in toast notifications (default) or inline alerts.
- * Toast notifications auto-dismiss after 5 seconds and appear in the top-right corner.
+ * Toast notifications auto-dismiss after 5 seconds and appear at the bottom of the screen.
  * Inline alerts replace the container content and remain until cleared.
  * 
  * **Validates: Requirements 10.7**
@@ -219,36 +219,14 @@ function showError(message, container = null) {
         container.innerHTML = '';
         container.appendChild(errorDiv);
     } else {
-        // Toast notification display
+        // Toast notification display (styled by .error-toast in main.css)
         errorDiv.classList.add('error-toast');
-        errorDiv.style.position = 'fixed';
-        errorDiv.style.top = '20px';
-        errorDiv.style.right = '20px';
-        errorDiv.style.zIndex = '9999';
-        errorDiv.style.maxWidth = '400px';
-        errorDiv.style.padding = '12px 16px';
-        errorDiv.style.backgroundColor = '#dc3545';
-        errorDiv.style.color = '#ffffff';
-        errorDiv.style.borderRadius = '4px';
-        errorDiv.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.2)';
-        errorDiv.style.display = 'flex';
-        errorDiv.style.alignItems = 'center';
-        errorDiv.style.gap = '8px';
-        errorDiv.style.animation = 'slideInRight 0.3s ease-out';
         
         // Add close button
         const closeButton = document.createElement('button');
         closeButton.className = 'error-close';
         closeButton.textContent = '×';
         closeButton.setAttribute('aria-label', 'Close error message');
-        closeButton.style.marginLeft = 'auto';
-        closeButton.style.background = 'none';
-        closeButton.style.border = 'none';
-        closeButton.style.color = '#ffffff';
-        closeButton.style.fontSize = '24px';
-        closeButton.style.cursor = 'pointer';
-        closeButton.style.padding = '0';
-        closeButton.style.lineHeight = '1';
         closeButton.onclick = () => errorDiv.remove();
         
         errorDiv.appendChild(closeButton);
@@ -257,8 +235,8 @@ function showError(message, container = null) {
         // Auto-remove after 5 seconds
         setTimeout(() => {
             if (errorDiv.parentNode) {
-                errorDiv.style.animation = 'slideOutRight 0.3s ease-in';
-                setTimeout(() => errorDiv.remove(), 300);
+                errorDiv.style.animation = 'toastOut 0.2s ease-in forwards';
+                setTimeout(() => errorDiv.remove(), 200);
             }
         }, 5000);
     }
@@ -281,17 +259,10 @@ function showLoading(container, message = 'Loading...') {
     loadingDiv.setAttribute('role', 'status');
     loadingDiv.setAttribute('aria-live', 'polite');
     
-    // Create spinner
+    // Create spinner (styled by .loading-spinner in main.css)
     const spinner = document.createElement('div');
     spinner.className = 'loading-spinner';
     spinner.setAttribute('aria-hidden', 'true');
-    spinner.style.width = '40px';
-    spinner.style.height = '40px';
-    spinner.style.border = '4px solid #f3f3f3';
-    spinner.style.borderTop = '4px solid #3498db';
-    spinner.style.borderRadius = '50%';
-    spinner.style.animation = 'spin 1s linear infinite';
-    spinner.style.margin = '0 auto 12px';
     
     // Create loading text
     const textSpan = document.createElement('span');
@@ -349,4 +320,37 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+/**
+ * Fill in the top bar with the logged-in user and wire up the logout button
+ * @param {Object} user - User from getCurrentUser()
+ */
+function initTopbar(user) {
+    const container = document.getElementById('topbar-user');
+    if (!container || !user) return;
+    
+    document.getElementById('topbar-user-name').textContent = user.display_name;
+    
+    // Show the Spotify profile picture, or the first letter of the name
+    const avatar = document.getElementById('topbar-avatar');
+    if (user.profile_image_url) {
+        const img = document.createElement('img');
+        img.className = 'avatar';
+        img.src = user.profile_image_url;
+        img.alt = '';
+        avatar.replaceWith(img);
+    } else {
+        avatar.textContent = (user.display_name || '?').charAt(0).toUpperCase();
+    }
+    
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+        try {
+            await logout();
+        } finally {
+            window.location.href = '/';
+        }
+    });
+    
+    container.hidden = false;
 }

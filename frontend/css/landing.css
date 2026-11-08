@@ -1,198 +1,183 @@
-/* Landing page specific styles */
+/* Landing page styles */
 
-/* Statistics Section */
+.hero {
+    text-align: center;
+    padding: 88px 0 56px;
+}
+
+.hero-eyebrow {
+    display: inline-block;
+    margin-bottom: 20px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-border);
+    color: var(--accent);
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.hero h1 {
+    font-size: clamp(2.25rem, 6vw, 3.75rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin-bottom: 20px;
+}
+
+.hero p {
+    max-width: 560px;
+    margin: 0 auto 32px;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+}
+
+.hero-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* Statistics */
 .statistics {
     display: flex;
     justify-content: center;
-    gap: 40px;
-    padding: 40px 20px;
-    margin: 40px 0;
+    gap: 48px;
+    margin-top: 56px;
 }
 
 .stat-card {
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    padding: 30px 50px;
     text-align: center;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-    transition: transform 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
 }
 
 .stat-number {
-    font-size: 3rem;
-    font-weight: bold;
-    color: #1DB954;
-    margin-bottom: 10px;
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
-    font-size: 1rem;
-    color: #b3b3b3;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    color: var(--text-faint);
+    font-size: 0.85rem;
 }
 
-/* Featured Rooms Section */
+/* How it works */
+.how-it-works,
 .featured-rooms {
-    padding: 40px 20px;
-    margin-top: 60px;
+    padding: 48px 0 0;
 }
 
+.how-it-works h2,
 .featured-rooms h2 {
-    text-align: center;
-    font-size: 2rem;
-    margin-bottom: 40px;
-    color: #ffffff;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 20px;
 }
 
+.steps {
+    list-style: none;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.step {
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    margin-bottom: 14px;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.step h3 {
+    font-size: 1.05rem;
+    margin-bottom: 6px;
+}
+
+.step p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+/* Featured rooms */
 .rooms-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 24px;
-    margin-bottom: 40px;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
 }
 
 .room-card {
-    background-color: #1e1e1e;
-    border-radius: 12px;
-    padding: 24px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-}
-
-.room-card:hover {
-    transform: translateY(-5px);
-    border-color: #1DB954;
-    box-shadow: 0 8px 16px rgba(29, 185, 84, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
 }
 
 .room-card h3 {
-    font-size: 1.5rem;
-    margin-bottom: 12px;
-    color: #ffffff;
+    font-size: 1.05rem;
 }
 
 .room-card p {
-    color: #b3b3b3;
-    margin-bottom: 16px;
-    line-height: 1.5;
-    min-height: 48px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    flex: 1;
 }
 
 .room-tags {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 16px;
+    gap: 6px;
 }
 
 .room-tag {
-    background-color: #282828;
-    color: #1DB954;
-    padding: 4px 12px;
-    border-radius: 16px;
-    font-size: 0.85rem;
-    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--surface-3);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    text-transform: capitalize;
 }
 
 .room-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 16px;
-    border-top: 1px solid #282828;
+    padding-top: 10px;
+    border-top: 1px solid var(--border);
 }
 
 .room-user-count {
-    color: #b3b3b3;
-    font-size: 0.9rem;
+    color: var(--text-faint);
+    font-size: 0.85rem;
 }
 
-.room-user-count::before {
-    content: "👥 ";
-}
-
-/* Loading and Error States */
-.loading {
-    text-align: center;
-    padding: 60px 20px;
-    color: #b3b3b3;
-    font-size: 1.2rem;
-}
-
-.error {
-    text-align: center;
-    padding: 40px 20px;
-    color: #ff6b6b;
-    font-size: 1.1rem;
-    background-color: #2a1a1a;
-    border-radius: 8px;
-    margin: 20px 0;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #b3b3b3;
-    font-size: 1.1rem;
-}
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-    .rooms-grid {
-        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-        gap: 20px;
-    }
-}
-
-@media (max-width: 768px) {
-    .statistics {
-        flex-direction: column;
-        gap: 20px;
-        padding: 20px;
+@media (max-width: 760px) {
+    .hero {
+        padding: 56px 0 40px;
     }
 
-    .stat-card {
-        padding: 20px 40px;
-    }
-
-    .stat-number {
-        font-size: 2.5rem;
-    }
-
-    .featured-rooms h2 {
-        font-size: 1.5rem;
-    }
-
-    .rooms-grid {
+    .steps {
         grid-template-columns: 1fr;
-        gap: 16px;
     }
 
-    .room-card {
-        padding: 20px;
-    }
-
-    .room-card h3 {
-        font-size: 1.3rem;
-    }
-}
-
-@media (max-width: 480px) {
-    .stat-card {
-        padding: 16px 32px;
-    }
-
-    .stat-number {
-        font-size: 2rem;
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
+    .statistics {
+        gap: 32px;
     }
 }

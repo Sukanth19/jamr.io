@@ -105,8 +105,29 @@ async def startup_event():
     try:
         init_db()
         print("Database initialized successfully")
+        reset_room_presence()
     except Exception as e:
         print(f"Database initialization error: {e}")
+
+
+def reset_room_presence():
+    """
+    Clear room memberships and user counts left over from before a restart.
+    
+    Presence is tracked per Socket.IO connection, and a restart drops every
+    connection without running disconnect cleanup. Open pages rejoin their
+    room automatically when the socket reconnects.
+    """
+    from backend.database import get_session_local
+    from backend.models import Room, RoomMembership
+    
+    db = get_session_local()()
+    try:
+        db.query(RoomMembership).delete()
+        db.query(Room).update({Room.user_count: 0})
+        db.commit()
+    finally:
+        db.close()
 
 
 @app.get("/health", tags=["Health"])

@@ -65,6 +65,7 @@ async function initDiscoverPage() {
 async function loadCurrentUser() {
     try {
         currentUser = await getCurrentUser();
+        initTopbar(currentUser);
         updateTasteDisplay();
     } catch (error) {
         console.error('Error loading user:', error);
@@ -76,7 +77,9 @@ async function loadCurrentUser() {
  */
 function updateTasteDisplay() {
     const genres = currentUser ? currentUser.favorite_genres : [];
-    tasteGenresDisplay.textContent = genres.length > 0 ? genres.join(', ') : 'not set';
+    tasteGenresDisplay.innerHTML = genres.length > 0
+        ? genres.map(g => `<span class="chip chip-accent">${escapeHtml(g)}</span>`).join('')
+        : 'Not set yet';
 }
 
 /**
@@ -263,32 +266,56 @@ function createRoomCard(room) {
     const card = document.createElement('div');
     card.className = 'room-card';
     card.setAttribute('data-room-id', room.id);
+    card.setAttribute('role', 'link');
+    card.tabIndex = 0;
     
-    // Add click handler to navigate to room
-    card.addEventListener('click', () => {
+    // Navigate to the room on click or Enter
+    const openRoom = () => {
         window.location.href = `/room?id=${room.id}`;
+    };
+    card.addEventListener('click', openRoom);
+    card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') openRoom();
     });
     
-    // Build card HTML
-    const isHighlyRecommended = room.similarity_score && room.similarity_score > 0.7;
     const hasPickedGenres = currentUser && currentUser.favorite_genres.length > 0;
+    const matchPercent = Math.round((room.similarity_score || 0) * 100);
+    const isHighlyRecommended = room.similarity_score && room.similarity_score > 0.7;
+    const matched = new Set(room.matched_genres || []);
+    const userCount = room.user_count || 0;
+    
+    const tagsHtml = room.genre_tags
+        .map(tag => `<span class="room-tag${matched.has(tag) ? ' matched' : ''}">${escapeHtml(tag)}</span>`)
+        .join('');
     
     card.innerHTML = `
         <div class="room-card-header">
             <h3 class="room-card-title">${escapeHtml(room.name)}</h3>
-            ${isHighlyRecommended ? '<span class="badge badge-recommended">Highly Recommended</span>' : ''}
+            ${hasPickedGenres ? `<span class="match-pill${isHighlyRecommended ? ' high' : ''}">${matchPercent}% match</span>` : ''}
         </div>
-        <p class="room-card-description">${escapeHtml(room.description || 'No description provided')}</p>
-        <div class="room-card-tags">
-            ${room.genre_tags.map(tag => `<span class="room-tag">${escapeHtml(tag)}</span>`).join('')}
-        </div>
+        <p class="room-card-description${room.description ? '' : ' empty'}">${escapeHtml(room.description || 'No description yet')}</p>
+        <div class="room-card-tags">${tagsHtml}</div>
+        ${formatSharedArtists(room.shared_artists)}
         <div class="room-card-footer">
-            <span class="room-user-count">${room.user_count || 0} ${room.user_count === 1 ? 'user' : 'users'}</span>
-            ${hasPickedGenres ? `<span class="room-match">${Math.round(room.similarity_score * 100)}% match</span>` : ''}
+            <span class="room-user-count${userCount > 0 ? ' live' : ''}">${userCount > 0 ? `${userCount} listening now` : 'Nobody here yet'}</span>
+            ${isHighlyRecommended ? '<span class="badge badge-recommended">Top match</span>' : ''}
         </div>
     `;
     
     return card;
+}
+
+/**
+ * Describe the artists the user shares with people in a room
+ * @param {Array<string>} artists - Shared artist names, most listened first
+ * @returns {string} - HTML line, or '' if none are shared
+ */
+function formatSharedArtists(artists) {
+    if (!artists || artists.length === 0) return '';
+    
+    const shown = artists.slice(0, 2).map(name => `<strong>${escapeHtml(name)}</strong>`).join(', ');
+    const more = artists.length > 2 ? ` +${artists.length - 2} more` : '';
+    return `<p class="room-shared">🎧 People here also love ${shown}${more}</p>`;
 }
 
 /**

@@ -145,3 +145,37 @@ def test_landing_page_responsive_meta_tag():
     assert response.status_code == 200
     assert b'name="viewport"' in response.content
     assert b"width=device-width" in response.content
+
+
+def test_featured_rooms_endpoint_is_public_and_hides_messages(db_session):
+    """
+    The landing page's featured rooms endpoint works without login and only
+    exposes room summaries.
+    """
+    from backend.database import get_db
+    from backend.models import Room, Message, User
+    
+    owner = User(spotify_id="featured_owner", display_name="Owner",
+                 access_token_encrypted="x", taste_vector={})
+    db_session.add(owner)
+    db_session.commit()
+    busy = Room(name="Busy", genre_tags=["rock"], taste_vector={}, owner_id=owner.id, user_count=5)
+    quiet = Room(name="Quiet", genre_tags=["jazz"], taste_vector={}, owner_id=owner.id, user_count=1)
+    db_session.add_all([busy, quiet])
+    db_session.commit()
+    db_session.add(Message(room_id=busy.id, user_id=owner.id, content="secret"))
+    db_session.commit()
+    
+    app.dependency_overrides[get_db] = lambda: db_session
+    try:
+        client.cookies.clear()
+        response = client.get("/api/rooms/featured")
+    finally:
+        app.dependency_overrides.clear()
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert [r["name"] for r in data["rooms"]][:2] == ["Busy", "Quiet"]
+    assert data["stats"]["active_users"] >= 6
+    assert set(data["rooms"][0]) == {"id", "name", "description", "genre_tags", "user_count"}
+    assert "secret" not in response.text

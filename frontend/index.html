@@ -4,49 +4,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>jamr.io - Music Matchmaking</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/landing.css">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>jamr.io</h1>
-            <p>Connect through music</p>
-        </header>
-        
-        <main>
-            <section class="hero">
-                <h2>Find your music community</h2>
-                <p>Discover rooms that match your taste and connect with people who share your passion for music.</p>
-                <a href="/auth/spotify" class="btn btn-primary">Login with Spotify</a>
-            </section>
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a href="/" class="brand">jamr<span>.io</span></a>
+            <a href="/auth/spotify" class="btn btn-secondary btn-sm" id="topbar-cta">Log in</a>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <span class="hero-eyebrow">Music chat rooms</span>
+            <h1>Find your music community</h1>
+            <p>Join rooms that match your taste, meet people who listen to the same artists, and press play together with Spotify Jam.</p>
+            <div class="hero-actions">
+                <a href="/auth/spotify" class="btn btn-primary btn-lg" id="hero-cta">Login with Spotify</a>
+            </div>
 
             <!-- Statistics Section -->
-            <section class="statistics">
+            <section class="statistics" aria-label="Live statistics">
                 <div class="stat-card">
-                    <div class="stat-number" id="active-users">-</div>
+                    <div class="stat-number" id="active-users">–</div>
                     <div class="stat-label">Active Users</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-number" id="active-rooms">-</div>
+                    <div class="stat-number" id="active-rooms">–</div>
                     <div class="stat-label">Active Rooms</div>
                 </div>
             </section>
+        </section>
 
-            <!-- Featured Rooms Section -->
-            <section class="featured-rooms">
-                <h2>Featured Rooms</h2>
-                <div id="rooms-container" class="rooms-grid">
-                    <div class="loading">Loading rooms...</div>
-                </div>
-            </section>
-        </main>
-        
-        <footer>
-            <p>&copy; 2024 jamr.io - All rights reserved</p>
-        </footer>
-    </div>
-    
+        <section class="how-it-works">
+            <h2>How it works</h2>
+            <ol class="steps">
+                <li class="step">
+                    <span class="step-number">1</span>
+                    <h3>Log in with Spotify</h3>
+                    <p>We read your top artists so we can find people who listen to the same music.</p>
+                </li>
+                <li class="step">
+                    <span class="step-number">2</span>
+                    <h3>Pick your genres</h3>
+                    <p>Rooms are ranked by how well they match your taste, and show the artists you share.</p>
+                </li>
+                <li class="step">
+                    <span class="step-number">3</span>
+                    <h3>Chat and listen</h3>
+                    <p>Talk in real time and share a Spotify Jam link so everyone listens together.</p>
+                </li>
+            </ol>
+        </section>
+
+        <!-- Featured Rooms Section -->
+        <section class="featured-rooms">
+            <h2>Featured Rooms</h2>
+            <div id="rooms-container" class="rooms-grid">
+                <div class="loading">Loading rooms...</div>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>jamr.io · Connect through music</p>
+    </footer>
+
     <script src="/static/js/landing.js"></script>
 </body>
 </html>

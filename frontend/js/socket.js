@@ -25,8 +25,8 @@ socket.on('connect', () => {
     isConnected = true;
     connectionAttempts = 0;
     
-    // Show connection success notification
-    showToast('Connected to server', 'success');
+    // No toast here: the first connection is expected, and reconnections
+    // are announced by the 'reconnect' handler below
     
     // Trigger custom event for other modules to handle
     window.dispatchEvent(new CustomEvent('socket:connected', {
@@ -166,28 +166,12 @@ function showToast(message, type = 'info') {
     
     // Auto-remove after 5 seconds
     setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
+        toast.style.animation = 'toastOut 0.2s ease-in forwards';
         setTimeout(() => {
             toast.remove();
-        }, 300);
+        }, 200);
     }, 5000);
 }
-
-// Add slideOut animation
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideOut {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(400px);
-            opacity: 0;
-        }
-    }
-`;
-document.head.appendChild(style);
 
 // Export for use in other modules
 window.socket = socket;

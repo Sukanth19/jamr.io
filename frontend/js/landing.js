@@ -35,117 +35,89 @@ function escapeHtml(text) {
 }
 
 /**
- * Fetch and display active user and room counts
- */
-async function loadStatistics() {
-    try {
-        // Fetch rooms to calculate statistics
-        const response = await fetchAPI('/api/rooms');
-        
-        // Handle different response formats
-        const rooms = response.rooms || response || [];
-        
-        // Calculate total active users across all rooms
-        const totalUsers = rooms.reduce((sum, roomData) => {
-            // Handle both nested and flat room structures
-            const room = roomData.room || roomData;
-            return sum + (room.user_count || 0);
-        }, 0);
-        
-        // Count total active rooms
-        const totalRooms = rooms.length;
-        
-        // Update the DOM
-        document.getElementById('active-users').textContent = totalUsers;
-        document.getElementById('active-rooms').textContent = totalRooms;
-    } catch (error) {
-        console.error('Failed to load statistics:', error);
-        // Show 0 for unauthenticated users or on error
-        document.getElementById('active-users').textContent = '0';
-        document.getElementById('active-rooms').textContent = '0';
-    }
-}
-
-/**
  * Create a room card element
  */
-function createRoomCard(roomData) {
-    const room = roomData.room || roomData;
-    
+function createRoomCard(room) {
     const card = document.createElement('div');
     card.className = 'room-card';
-    
+
     // Create tags HTML
     const tagsHtml = (room.genre_tags || [])
         .map(tag => `<span class="room-tag">${escapeHtml(tag)}</span>`)
         .join('');
-    
+
+    const count = room.user_count || 0;
+
     card.innerHTML = `
         <h3>${escapeHtml(room.name)}</h3>
-        <p>${escapeHtml(room.description || 'No description available')}</p>
+        <p>${escapeHtml(room.description || 'No description yet')}</p>
         <div class="room-tags">
             ${tagsHtml}
         </div>
         <div class="room-footer">
-            <span class="room-user-count">${room.user_count || 0} active</span>
+            <span class="room-user-count">${count > 0 ? `${count} listening now` : 'Nobody here yet'}</span>
         </div>
     `;
-    
+
     return card;
 }
 
 /**
- * Fetch and display featured rooms
+ * Fetch and display statistics and featured rooms (public endpoint, no login)
  */
 async function loadFeaturedRooms() {
     const container = document.getElementById('rooms-container');
-    
+
     try {
-        // Show loading state
-        container.innerHTML = '<div class="loading">Loading rooms...</div>';
-        
-        // Fetch rooms from API
-        const response = await fetchAPI('/api/rooms');
-        
-        // Handle different response formats
-        const rooms = response.rooms || response || [];
-        
-        // Clear loading state
+        const data = await fetchAPI('/api/rooms/featured');
+
+        document.getElementById('active-users').textContent = data.stats.active_users;
+        document.getElementById('active-rooms').textContent = data.stats.rooms;
+
         container.innerHTML = '';
-        
-        if (rooms.length === 0) {
-            container.innerHTML = '<div class="empty-state">No rooms available yet. Be the first to create one!</div>';
+
+        if (data.rooms.length === 0) {
+            container.innerHTML = '<div class="empty-state">No rooms yet. Log in and start the first one!</div>';
             return;
         }
-        
-        // Display up to 6 featured rooms
-        const featuredRooms = rooms.slice(0, 6);
-        
-        featuredRooms.forEach(roomData => {
-            const card = createRoomCard(roomData);
-            container.appendChild(card);
+
+        data.rooms.forEach(room => {
+            container.appendChild(createRoomCard(room));
         });
-        
     } catch (error) {
         console.error('Failed to load featured rooms:', error);
-        
-        // For unauthenticated users, show a friendly message
-        if (error.message.includes('401') || error.message.includes('Unauthorized')) {
-            container.innerHTML = '<div class="empty-state">Log in with Spotify to discover rooms that match your music taste!</div>';
-        } else {
-            container.innerHTML = '<div class="error">Failed to load rooms. Please try again later.</div>';
-        }
+        document.getElementById('active-users').textContent = '–';
+        document.getElementById('active-rooms').textContent = '–';
+        container.innerHTML = '<div class="empty-state">Couldn\'t load rooms right now.</div>';
     }
+}
+
+/**
+ * If the visitor is already logged in, point the buttons at their rooms
+ */
+async function updateCallsToAction() {
+    try {
+        await fetchAPI('/auth/me');
+    } catch (error) {
+        return;  // Not logged in: keep "Login with Spotify"
+    }
+
+    const heroCta = document.getElementById('hero-cta');
+    heroCta.href = '/discover';
+    heroCta.textContent = 'Open your rooms';
+
+    const topbarCta = document.getElementById('topbar-cta');
+    topbarCta.href = '/discover';
+    topbarCta.textContent = 'Your rooms';
 }
 
 /**
  * Initialize the landing page
  */
 async function initLandingPage() {
-    // Load statistics and featured rooms in parallel
     await Promise.all([
-        loadStatistics(),
-        loadFeaturedRooms()
+        loadFeaturedRooms(),
+        updateCallsToAction()
     ]);
 }
 

@@ -169,6 +169,37 @@ async def get_rooms(
     }
 
 
+@router.get("/featured")
+async def get_featured_rooms(db: Session = Depends(get_db)):
+    """
+    Public summary for the landing page: busiest rooms and overall counts.
+    
+    Does not require login. Returns only room names, descriptions, genres and
+    user counts (never messages).
+    
+    Returns:
+        dict: {"rooms": [up to 6 rooms], "stats": {"active_users": int, "rooms": int}}
+    """
+    rooms = db.query(Room).order_by(Room.user_count.desc(), Room.created_at.desc()).all()
+    
+    return {
+        "rooms": [
+            {
+                "id": room.id,
+                "name": room.name,
+                "description": room.description,
+                "genre_tags": room.genre_tags,
+                "user_count": room.user_count
+            }
+            for room in rooms[:6]
+        ],
+        "stats": {
+            "active_users": sum(room.user_count or 0 for room in rooms),
+            "rooms": len(rooms)
+        }
+    }
+
+
 def _shared_artists_by_room(db: Session, current_user: User, room_ids: List[int]) -> Dict[int, List[str]]:
     """
     Find the current user's top artists shared with people in each room.

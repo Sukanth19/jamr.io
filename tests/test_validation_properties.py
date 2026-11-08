@@ -178,7 +178,8 @@ def test_xss_sanitization_handles_none():
 # Property 25: Message Length Validation
 # **Validates: Requirements 7.7**
 @settings(max_examples=100)
-@given(content=st.text(min_size=501, max_size=1000))
+# Length is checked after trimming, so require > 500 non-padding chars
+@given(content=st.text(min_size=501, max_size=1000).filter(lambda s: len(s.strip()) > 500))
 def test_message_length_too_long_rejected(content):
     """
     Property 25: Message Length Validation (Part 1 - Too Long)

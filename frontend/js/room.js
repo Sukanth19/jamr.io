@@ -6,8 +6,12 @@
 // Room state
 let currentRoom = null;
 let currentRoomId = null;
+let currentUser = null;
 let activeUsers = [];
 let messages = [];
+
+// Consecutive messages from the same person within this window are grouped
+const MESSAGE_GROUP_WINDOW_MS = 5 * 60 * 1000;
 
 /**
  * Initialize room page
@@ -22,6 +26,14 @@ async function initRoomPage() {
             window.location.href = '/discover';
         }, 2000);
         return;
+    }
+    
+    // Load the logged-in user (for the top bar and to mark own messages)
+    try {
+        currentUser = await getCurrentUser();
+        initTopbar(currentUser);
+    } catch (error) {
+        console.error('Error loading user:', error);
     }
     
     // Load room details and messages
@@ -101,7 +113,7 @@ function updateRoomHeader(room) {
     if (room.genre_tags && room.genre_tags.length > 0) {
         room.genre_tags.forEach(tag => {
             const tagSpan = document.createElement('span');
-            tagSpan.className = 'tag';
+            tagSpan.className = 'chip';
             tagSpan.textContent = tag;
             tagsContainer.appendChild(tagSpan);
         });
@@ -126,8 +138,12 @@ function renderMessages(messageList) {
         return;
     }
     
-    messageList.forEach(msg => {
-        appendMessage(msg.username, msg.content, msg.created_at, false);
+    // The API returns newest first; show oldest at the top
+    const chronological = [...messageList].sort(
+        (a, b) => new Date(a.created_at) - new Date(b.created_at)
+    );
+    chronological.forEach(msg => {
+        appendMessage(msg.username, msg.content, msg.created_at, false, msg.user_id);
     });
 }
 
@@ -137,8 +153,9 @@ function renderMessages(messageList) {
  * @param {string} content - Message content
  * @param {string} timestamp - Message timestamp
  * @param {boolean} shouldScroll - Whether to scroll to bottom
+ * @param {number} userId - Sender user ID (to mark own messages and group runs)
  */
-function appendMessage(username, content, timestamp, shouldScroll = true) {
+function appendMessage(username, content, timestamp, shouldScroll = true, userId = null) {
     const chatMessages = document.getElementById('chat-messages');
     
     // Remove empty state if exists
@@ -149,6 +166,20 @@ function appendMessage(username, content, timestamp, shouldScroll = true) {
     
     const messageDiv = document.createElement('div');
     messageDiv.className = 'message';
+    messageDiv.dataset.userId = userId;
+    messageDiv.dataset.timestamp = timestamp;
+    
+    if (currentUser && userId === currentUser.id) {
+        messageDiv.classList.add('own');
+    }
+    
+    // Group with the previous message if it's from the same person, shortly before
+    const previous = chatMessages.lastElementChild;
+    if (previous && previous.classList.contains('message')
+        && userId !== null && previous.dataset.userId === String(userId)
+        && new Date(timestamp) - new Date(previous.dataset.timestamp) < MESSAGE_GROUP_WINDOW_MS) {
+        messageDiv.classList.add('grouped');
+    }
     
     const messageHeader = document.createElement('div');
     messageHeader.className = 'message-header';
@@ -263,6 +294,7 @@ function sendMessage() {
         // Clear input
         input.value = '';
         updateCharCount();
+        autoResizeMessageInput();
     }
 }
 
@@ -306,12 +338,12 @@ function updateJamLinkDisplay(link) {
     
     if (link) {
         display.innerHTML = `
-            <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">
-                ${escapeHtml(link)}
+            <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(link)}">
+                ▶ Join the Spotify Jam
             </a>
         `;
     } else {
-        display.innerHTML = '<p class="no-link">No active Jam link. Share one below!</p>';
+        display.innerHTML = '<p class="no-link">No Jam running. Start one in Spotify and share the link.</p>';
     }
 }
 
@@ -353,6 +385,15 @@ function updateCharCount() {
 }
 
 /**
+ * Grow the message box with its content (capped by max-height in CSS)
+ */
+function autoResizeMessageInput() {
+    const input = document.getElementById('message-input');
+    input.style.height = 'auto';
+    input.style.height = `${input.scrollHeight}px`;
+}
+
+/**
  * Set up event listeners
  */
 function setupEventListeners() {
@@ -367,8 +408,11 @@ function setupEventListeners() {
         }
     });
     
-    // Message input - update character count
-    document.getElementById('message-input').addEventListener('input', updateCharCount);
+    // Message input - update character count and grow with the text
+    document.getElementById('message-input').addEventListener('input', () => {
+        updateCharCount();
+        autoResizeMessageInput();
+    });
     
     // Update Jam link button
     document.getElementById('update-jam-link-btn').addEventListener('click', updateJamLink);
@@ -428,7 +472,7 @@ function setupSocketListeners() {
         console.log('New message:', data);
         
         // Append message to chat
-        appendMessage(data.username, data.content, data.timestamp, true);
+        appendMessage(data.username, data.content, data.timestamp, true, data.user_id);
     });
     
     // Jam link updated event
@@ -514,8 +558,26 @@ function renderActiveUsers() {
     
     activeUsers.forEach(user => {
         const li = document.createElement('li');
-        li.textContent = user.username;
         li.dataset.userId = user.user_id;
+        
+        const avatar = document.createElement('span');
+        avatar.className = 'avatar';
+        avatar.setAttribute('aria-hidden', 'true');
+        avatar.textContent = (user.username || '?').charAt(0).toUpperCase();
+        
+        const name = document.createElement('span');
+        name.textContent = user.username;
+        
+        li.appendChild(avatar);
+        li.appendChild(name);
+        
+        if (currentUser && user.user_id === currentUser.id) {
+            const you = document.createElement('span');
+            you.className = 'you-label';
+            you.textContent = '(you)';
+            li.appendChild(you);
+        }
+        
         usersList.appendChild(li);
     });
     

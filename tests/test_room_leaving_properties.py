@@ -577,3 +577,30 @@ def test_property_19_user_count_consistency_after_leaves(initial_count, num_memb
     finally:
         db_session.rollback()
         db_session.close()
+
+
+def test_startup_resets_stale_room_presence(db_session):
+    """
+    After a restart no sockets are connected, so leftover memberships and
+    user counts must be cleared on startup.
+    """
+    from unittest.mock import patch
+    from backend.main import reset_room_presence
+    from backend.models import Room, RoomMembership, User
+    
+    user = User(spotify_id="stale_presence_user", display_name="Stale",
+                access_token_encrypted="x", taste_vector={})
+    db_session.add(user)
+    db_session.commit()
+    room = Room(name="Stale room", genre_tags=["rock"], taste_vector={}, owner_id=user.id, user_count=1)
+    db_session.add(room)
+    db_session.commit()
+    db_session.add(RoomMembership(user_id=user.id, room_id=room.id))
+    db_session.commit()
+    room_id = room.id
+    
+    with patch('backend.database.get_session_local', return_value=lambda: db_session):
+        reset_room_presence()
+    
+    assert db_session.query(RoomMembership).filter(RoomMembership.room_id == room_id).count() == 0
+    assert db_session.get(Room, room_id).user_count == 0
