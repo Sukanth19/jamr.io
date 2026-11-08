@@ -61,8 +61,10 @@ def check_dependencies():
         "sqlalchemy",
         "psycopg2",
         "alembic",
-        "python_socketio",
-        "cryptography"
+        "socketio",  # python-socketio
+        "cryptography",
+        "httpx",
+        "dotenv"  # python-dotenv
     ]
     
     missing = []
@@ -88,9 +90,10 @@ def check_database():
         from dotenv import load_dotenv
         load_dotenv()
         
-        from backend.database import engine
-        with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+        from sqlalchemy import text
+        from backend.database import get_engine
+        with get_engine().connect() as conn:
+            conn.execute(text("SELECT 1"))
             print("✅ Database connection successful")
             return True
     except Exception as e:
@@ -105,13 +108,15 @@ def check_migrations():
     
     try:
         import subprocess
+        # Run alembic from this interpreter so it works without an activated venv
         result = subprocess.run(
-            ["alembic", "current"],
+            [sys.executable, "-m", "alembic", "current"],
             capture_output=True,
             text=True
         )
         
-        if "head" in result.stdout or result.returncode == 0:
+        # "alembic current" marks the revision with "(head)" when up to date
+        if result.returncode == 0 and "(head)" in result.stdout:
             print("✅ Migrations are up to date")
             return True
         else:
