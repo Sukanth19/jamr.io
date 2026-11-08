@@ -4,17 +4,24 @@ import os
 import secrets
 import httpx
 from datetime import datetime, timedelta
-from typing import Dict
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, HTTPException, Response, Depends, Cookie
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
+from typing import List
 from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 
 from backend.database import get_db
 from backend.models import User
-from backend.recommendation_engine import map_spotify_genres, generate_taste_vector_from_genres
+from backend.recommendation_engine import (
+    GENRE_VECTORS,
+    map_spotify_genres,
+    generate_taste_vector_from_genres,
+    generate_room_taste_vector,
+)
+from backend.serializers import serialize_user
 
 # Load environment variables
 load_dotenv()
@@ -22,9 +29,10 @@ load_dotenv()
 # Create router for auth endpoints
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-# In-memory storage for CSRF state tokens (for MVP)
-# In production, use Redis or database with expiration
-_state_store: Dict[str, datetime] = {}
+# CSRF state is kept in a short-lived cookie (not server memory) so it
+# survives server restarts and works with multiple workers
+STATE_COOKIE = "oauth_state"
+STATE_MAX_AGE = 10 * 60  # 10 minutes
 
 SPOTIFY_AUTH_URL = "https://accounts.spotify.com/authorize"
 
@@ -33,17 +41,6 @@ SPOTIFY_SCOPES = [
     "user-read-email",
     "user-top-read"
 ]
-
-
-def _cleanup_expired_states():
-    """Remove expired state tokens from storage."""
-    now = datetime.now()
-    expired_keys = [
-        state for state, expires_at in _state_store.items()
-        if expires_at < now
-    ]
-    for key in expired_keys:
-        del _state_store[key]
 
 
 @router.get("/spotify")
@@ -79,15 +76,8 @@ async def spotify_oauth_redirect():
             detail="Spotify redirect URI not configured"
         )
     
-    # Clean up expired state tokens
-    _cleanup_expired_states()
-    
-    # Generate random CSRF state parameter (32 bytes = 64 hex characters)
+    # Generate random CSRF state parameter
     state = secrets.token_urlsafe(32)
-    
-    # Store state with 10-minute expiration
-    expires_at = datetime.now() + timedelta(minutes=10)
-    _state_store[state] = expires_at
     
     # Construct Spotify authorization URL
     auth_params = {
@@ -101,37 +91,45 @@ async def spotify_oauth_redirect():
     
     authorization_url = f"{SPOTIFY_AUTH_URL}?{urlencode(auth_params)}"
     
-    # Redirect user to Spotify authorization page
-    return RedirectResponse(url=authorization_url, status_code=302)
+    # Redirect user to Spotify authorization page, remembering the state
+    # in a cookie that expires after 10 minutes
+    response = RedirectResponse(url=authorization_url, status_code=302)
+    response.set_cookie(
+        key=STATE_COOKIE,
+        value=state,
+        httponly=True,
+        max_age=STATE_MAX_AGE,
+        secure=os.getenv("ENVIRONMENT", "development") == "production",
+        samesite="lax"  # Sent on the top-level redirect back from Spotify
+    )
+    return response
 
 
-def verify_state(state: str) -> bool:
+def verify_state(state: str, expected_state: str) -> bool:
     """
-    Verify CSRF state parameter.
+    Verify CSRF state parameter against the value stored in the state cookie.
     
     Args:
-        state: State parameter to verify
+        state: State parameter returned by Spotify
+        expected_state: State stored in the oauth_state cookie (None if the
+            cookie is missing or expired)
     
     Returns:
-        bool: True if state is valid and not expired, False otherwise
+        bool: True if both are present and match, False otherwise
     """
-    _cleanup_expired_states()
-    
-    if state not in _state_store:
+    if not state or not expected_state:
         return False
     
-    # Check if state has expired
-    if _state_store[state] < datetime.now():
-        del _state_store[state]
-        return False
-    
-    # State is valid, remove it (one-time use)
-    del _state_store[state]
-    return True
+    return secrets.compare_digest(state, expected_state)
 
 
 @router.get("/callback")
-async def spotify_oauth_callback(code: str = None, state: str = None, error: str = None):
+async def spotify_oauth_callback(
+    code: str = None,
+    state: str = None,
+    error: str = None,
+    oauth_state: str = Cookie(None, alias=STATE_COOKIE)
+):
     """
     Handle Spotify OAuth callback.
     
@@ -191,13 +189,17 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
         )
     
     # Verify CSRF state parameter
-    if not verify_state(state):
+    if not verify_state(state, oauth_state):
         raise HTTPException(
             status_code=400,
             detail={
                 "error": {
                     "code": "INVALID_STATE",
-                    "message": "Invalid or expired state parameter"
+                    "message": (
+                        "Login session expired or was started from a different address. "
+                        "Open the app at the same address as SPOTIFY_REDIRECT_URI "
+                        "(e.g. http://127.0.0.1:8000) and log in again."
+                    )
                 }
             }
         )
@@ -385,7 +387,9 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
                     existing_user.access_token_encrypted = access_token_encrypted
                     existing_user.refresh_token_encrypted = refresh_token_encrypted
                     existing_user.token_expires_at = token_expires_at
-                    existing_user.taste_vector = taste_vector
+                    # Keep the taste derived from genres the user picked
+                    if not existing_user.favorite_genres:
+                        existing_user.taste_vector = taste_vector
                     existing_user.updated_at = datetime.now()
                     db.commit()
                     user = existing_user
@@ -424,6 +428,9 @@ async def spotify_oauth_callback(code: str = None, state: str = None, error: str
                 
                 # Create redirect response
                 response = RedirectResponse(url="/discover", status_code=302)
+                
+                # State is single-use: clear the cookie
+                response.delete_cookie(STATE_COOKIE)
                 
                 # Get environment (default to development)
                 environment = os.getenv("ENVIRONMENT", "development")
@@ -859,3 +866,75 @@ async def logout(
     return {
         "message": "Successfully logged out"
     }
+
+
+# Limits for the genres a user can pick
+MIN_FAVORITE_GENRES = 1
+MAX_FAVORITE_GENRES = 5
+
+
+class FavoriteGenresRequest(BaseModel):
+    """Request model for setting a user's favorite genres."""
+    genres: List[str] = Field(..., description="Genres the user likes (1-5)")
+
+
+@router.get("/me")
+async def get_me(current_user: User = Depends(get_current_user)):
+    """
+    Get the logged-in user's profile.
+    
+    Returns:
+        dict: Serialized user, including favorite_genres ([] if not picked yet)
+    """
+    return serialize_user(current_user)
+
+
+@router.put("/me/genres")
+async def set_favorite_genres(
+    genres_data: FavoriteGenresRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Set the logged-in user's favorite genres and rebuild their taste vector.
+    
+    Spotify no longer exposes genres or audio features, so the genres a user
+    picks are what room recommendations are based on.
+    
+    Raises:
+        HTTPException: 400 if the list is empty, too long, or has unknown genres
+    """
+    genres = list(dict.fromkeys(g.strip().lower() for g in genres_data.genres if g.strip()))
+    
+    unknown = [g for g in genres if g not in GENRE_VECTORS]
+    if unknown:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": f"Unknown genres: {', '.join(unknown)}",
+                    "field": "genres"
+                }
+            }
+        )
+    
+    if not MIN_FAVORITE_GENRES <= len(genres) <= MAX_FAVORITE_GENRES:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": f"Pick between {MIN_FAVORITE_GENRES} and {MAX_FAVORITE_GENRES} genres",
+                    "field": "genres"
+                }
+            }
+        )
+    
+    current_user.favorite_genres = genres
+    current_user.taste_vector = generate_room_taste_vector(genres)
+    current_user.updated_at = datetime.now()
+    db.commit()
+    db.refresh(current_user)
+    
+    return serialize_user(current_user)

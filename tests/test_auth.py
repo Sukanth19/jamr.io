@@ -90,43 +90,51 @@ def test_state_parameter_is_unique():
 
 
 def test_verify_state_valid():
-    """Test that verify_state accepts valid state tokens."""
-    from backend.auth import verify_state, _state_store
-    from datetime import datetime, timedelta
+    """Test that verify_state accepts a state matching the cookie."""
+    from backend.auth import verify_state
     
-    # Add a valid state token
-    test_state = "test_state_token"
-    _state_store[test_state] = datetime.now() + timedelta(minutes=5)
-    
-    # Verify it
-    assert verify_state(test_state) is True
-    
-    # State should be removed after verification (one-time use)
-    assert test_state not in _state_store
+    assert verify_state("test_state_token", "test_state_token") is True
 
 
-def test_verify_state_expired():
-    """Test that verify_state rejects expired state tokens."""
-    from backend.auth import verify_state, _state_store
-    from datetime import datetime, timedelta
+def test_verify_state_missing_cookie():
+    """Test that verify_state rejects state when the cookie is missing or expired."""
+    from backend.auth import verify_state
     
-    # Add an expired state token
-    test_state = "expired_state_token"
-    _state_store[test_state] = datetime.now() - timedelta(minutes=1)
-    
-    # Verify it
-    assert verify_state(test_state) is False
-    
-    # State should be removed
-    assert test_state not in _state_store
+    assert verify_state("test_state_token", None) is False
 
 
 def test_verify_state_invalid():
-    """Test that verify_state rejects invalid state tokens."""
+    """Test that verify_state rejects a state that doesn't match the cookie."""
     from backend.auth import verify_state
     
-    # Try to verify a non-existent state
-    assert verify_state("nonexistent_state") is False
+    assert verify_state("attacker_state", "test_state_token") is False
+    assert verify_state(None, "test_state_token") is False
+
+
+def test_spotify_redirect_sets_state_cookie():
+    """Test that /auth/spotify stores the state in a short-lived HttpOnly cookie."""
+    with patch.dict(os.environ, {
+        'SPOTIFY_CLIENT_ID': 'test_client_id',
+        'SPOTIFY_REDIRECT_URI': 'http://127.0.0.1:8000/auth/callback'
+    }):
+        response = client.get("/auth/spotify", follow_redirects=False)
+    
+    location = response.headers["location"]
+    state = [p.split("=")[1] for p in location.split("?")[1].split("&") if p.startswith("state=")][0]
+    
+    set_cookie = response.headers["set-cookie"]
+    assert f"oauth_state={state}" in set_cookie
+    assert "HttpOnly" in set_cookie
+    assert "Max-Age=600" in set_cookie
+
+
+def test_oauth_callback_rejects_state_without_cookie():
+    """Test that the callback rejects a state when no state cookie was set."""
+    client.cookies.clear()
+    response = client.get("/auth/callback?code=test_code&state=some_state")
+    
+    assert response.status_code == 400
+    assert response.json()["detail"]["error"]["code"] == "INVALID_STATE"
 
 
 def test_oauth_callback_missing_code():

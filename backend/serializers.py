@@ -44,6 +44,7 @@ def serialize_user(user: User, include_email: bool = True) -> Dict[str, Any]:
         "display_name": user.display_name,
         "profile_image_url": user.profile_image_url,
         "taste_vector": user.taste_vector,
+        "favorite_genres": user.favorite_genres or [],
         "created_at": user.created_at.isoformat() if user.created_at else None,
         "updated_at": user.updated_at.isoformat() if user.updated_at else None
     }

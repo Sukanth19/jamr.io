@@ -28,7 +28,10 @@ async function apiRequest(endpoint, options = {}) {
             
             try {
                 const errorData = await response.json();
-                errorMessage = errorData.error?.message || errorData.message || errorMessage;
+                errorMessage = errorData.error?.message
+                    || errorData.detail?.error?.message
+                    || errorData.message
+                    || errorMessage;
             } catch (e) {
                 // If response is not JSON, use status text
                 errorMessage = response.statusText || errorMessage;
@@ -65,7 +68,9 @@ async function getRooms(filters = {}) {
     const queryString = params.toString();
     const endpoint = queryString ? `/api/rooms?${queryString}` : '/api/rooms';
     
-    return await apiRequest(endpoint);
+    // API responds with { rooms: [...], total }
+    const data = await apiRequest(endpoint);
+    return data.rooms || [];
 }
 
 /**
@@ -117,7 +122,9 @@ async function leaveRoom(roomId) {
  * @returns {Promise<Array>} - List of messages
  */
 async function getMessages(roomId) {
-    return await apiRequest(`/api/rooms/${roomId}/messages`);
+    // API responds with { room_id, messages: [...], total }
+    const data = await apiRequest(`/api/rooms/${roomId}/messages`);
+    return data.messages || [];
 }
 
 /**
@@ -139,6 +146,18 @@ async function updateJamLink(roomId, link) {
  */
 async function getCurrentUser() {
     return await apiRequest('/auth/me');
+}
+
+/**
+ * Set the current user's favorite genres (drives room recommendations)
+ * @param {Array<string>} genres - 1-5 genre names
+ * @returns {Promise<Object>} - Updated user data
+ */
+async function setFavoriteGenres(genres) {
+    return await apiRequest('/auth/me/genres', {
+        method: 'PUT',
+        body: JSON.stringify({ genres })
+    });
 }
 
 /**

@@ -395,7 +395,74 @@ def cosine_similarity(vector_a: Dict[str, float], vector_b: Dict[str, float]) ->
     return max(0.0, min(1.0, similarity))
 
 
-def get_recommended_rooms(user_taste_vector: Dict[str, float], rooms: List[Dict]) -> List[Dict]:
+def _euclidean_distance(vector_a: Dict[str, float], vector_b: Dict[str, float]) -> float:
+    """Euclidean distance between two taste vectors over their common keys."""
+    common_keys = set(vector_a.keys()) & set(vector_b.keys())
+    return sum((vector_a[key] - vector_b[key]) ** 2 for key in common_keys) ** 0.5
+
+
+def _build_genre_closeness() -> Dict[tuple, float]:
+    """
+    Precompute how close each pair of base genres is, scaled to 0-1.
+    
+    Uses Euclidean distance between genre vectors, min-max scaled across all
+    pairs so the closest pair (e.g. metal/punk) is ~1 and the farthest
+    (e.g. classical/electronic) is 0. Cosine similarity is unsuitable here:
+    every genre vector is all-positive, so nearly all pairs score above 0.9.
+    """
+    genres = list(GENRE_VECTORS)
+    distances = {
+        (a, b): _euclidean_distance(GENRE_VECTORS[a], GENRE_VECTORS[b])
+        for a in genres for b in genres if a != b
+    }
+    d_min, d_max = min(distances.values()), max(distances.values())
+    return {pair: 1 - (d - d_min) / (d_max - d_min) for pair, d in distances.items()}
+
+
+GENRE_CLOSENESS = _build_genre_closeness()
+
+# How much a room genre the user didn't pick, but is close to one they did,
+# can contribute (an exact match contributes 1)
+RELATED_GENRE_WEIGHT = 0.5
+
+
+def genre_match_score(user_genres: List[str], room_genres: List[str]) -> float:
+    """
+    Score how well a room's genres fit the genres a user picked.
+    
+    Each room genre the user picked counts 1. Each other room genre counts
+    RELATED_GENRE_WEIGHT × its closeness to the nearest genre the user picked.
+    The score is the average over the room's genres, so a room scores > 0.7
+    only when most of its genres are ones the user picked.
+    
+    Args:
+        user_genres: Genres the user picked.
+        room_genres: The room's genre tags.
+    
+    Returns:
+        Float between 0 and 1. Returns 0.0 if either list has no known genres.
+    """
+    user_set = {g.lower() for g in user_genres if g.lower() in GENRE_VECTORS}
+    room_list = [g.lower() for g in room_genres if g.lower() in GENRE_VECTORS]
+    
+    if not user_set or not room_list:
+        return 0.0
+    
+    total = 0.0
+    for genre in room_list:
+        if genre in user_set:
+            total += 1.0
+        else:
+            total += RELATED_GENRE_WEIGHT * max(GENRE_CLOSENESS[(genre, u)] for u in user_set)
+    
+    return total / len(room_list)
+
+
+def get_recommended_rooms(
+    user_taste_vector: Dict[str, float],
+    rooms: List[Dict],
+    user_genres: Optional[List[str]] = None
+) -> List[Dict]:
     """
     Rank rooms by similarity to user taste vector and mark highly recommended rooms.
     
@@ -414,6 +481,10 @@ def get_recommended_rooms(user_taste_vector: Dict[str, float], rooms: List[Dict]
         - 'similarity_score': float (0-1) - Cosine similarity to user taste
         - 'highly_recommended': bool - True if similarity_score > 0.7
     
+    If user_genres is given (the user picked favorite genres), rooms are scored
+    with genre_match_score against each room's 'genre_tags' instead, and each
+    room also gets 'matched_genres': the room genres the user picked.
+    
     Requirements: 4.3, 4.4, 4.5
     """
     # Calculate similarity score for each room
@@ -421,11 +492,18 @@ def get_recommended_rooms(user_taste_vector: Dict[str, float], rooms: List[Dict]
     for room in rooms:
         room_taste_vector = room.get('taste_vector', {})
         
-        # Calculate similarity score
-        similarity_score = cosine_similarity(user_taste_vector, room_taste_vector)
-        
         # Create new room dict with added fields
         room_with_score = room.copy()
+        
+        # Calculate similarity score
+        if user_genres:
+            room_genres = room.get('genre_tags') or []
+            similarity_score = genre_match_score(user_genres, room_genres)
+            picked = {g.lower() for g in user_genres}
+            room_with_score['matched_genres'] = [g for g in room_genres if g.lower() in picked]
+        else:
+            similarity_score = cosine_similarity(user_taste_vector, room_taste_vector)
+        
         room_with_score['similarity_score'] = similarity_score
         room_with_score['highly_recommended'] = similarity_score > 0.7
         

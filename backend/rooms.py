@@ -148,7 +148,9 @@ async def get_rooms(
     user_taste_vector = current_user.taste_vector
     
     # Rank rooms by similarity to user's taste
-    recommended_rooms = get_recommended_rooms(user_taste_vector, rooms_data)
+    recommended_rooms = get_recommended_rooms(
+        user_taste_vector, rooms_data, user_genres=current_user.favorite_genres
+    )
     
     return {
         "rooms": recommended_rooms,

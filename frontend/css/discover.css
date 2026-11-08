@@ -565,3 +565,46 @@
         grid-template-columns: 1fr 1fr;
     }
 }
+
+/* Taste Summary */
+.actions-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.taste-summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #b3b3b3;
+    font-size: 0.95rem;
+}
+
+.taste-genres {
+    color: #ffffff;
+    text-transform: capitalize;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    padding: 0;
+    color: #1DB954;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.btn-link:hover {
+    color: #1ed760;
+}
+
+/* Match Percentage on Room Cards */
+.room-match {
+    color: #1DB954;
+    font-size: 0.9rem;
+    font-weight: 600;
+}

@@ -19,6 +19,13 @@ let createRoomForm;
 let modalCloseBtn;
 let modalCancelBtn;
 let formError;
+let tasteModal;
+let tasteForm;
+let tasteFormError;
+let tasteGenresDisplay;
+
+// Logged-in user (includes favorite_genres)
+let currentUser = null;
 
 /**
  * Initialize the discover page
@@ -31,15 +38,120 @@ async function initDiscoverPage() {
     createRoomBtn = document.getElementById('create-room-btn');
     createRoomModal = document.getElementById('create-room-modal');
     createRoomForm = document.getElementById('create-room-form');
-    modalCloseBtn = document.querySelector('.modal-close');
-    modalCancelBtn = document.querySelector('.modal-cancel');
+    modalCloseBtn = createRoomModal.querySelector('.modal-close');
+    modalCancelBtn = createRoomModal.querySelector('.modal-cancel');
     formError = document.getElementById('form-error');
+    tasteModal = document.getElementById('taste-modal');
+    tasteForm = document.getElementById('taste-form');
+    tasteFormError = document.getElementById('taste-form-error');
+    tasteGenresDisplay = document.getElementById('taste-genres');
     
     // Set up event listeners
     setupEventListeners();
     
+    // Load the user's taste; ask for genres if they haven't picked any yet
+    await loadCurrentUser();
+    if (currentUser && currentUser.favorite_genres.length === 0) {
+        openTasteModal();
+    }
+    
     // Load initial rooms
     await loadRooms();
+}
+
+/**
+ * Load the logged-in user and show their favorite genres
+ */
+async function loadCurrentUser() {
+    try {
+        currentUser = await getCurrentUser();
+        updateTasteDisplay();
+    } catch (error) {
+        console.error('Error loading user:', error);
+    }
+}
+
+/**
+ * Show the user's favorite genres in the taste summary
+ */
+function updateTasteDisplay() {
+    const genres = currentUser ? currentUser.favorite_genres : [];
+    tasteGenresDisplay.textContent = genres.length > 0 ? genres.join(', ') : 'not set';
+}
+
+/**
+ * Open the favorite genres modal, pre-checking the current picks
+ */
+function openTasteModal() {
+    const picked = currentUser ? currentUser.favorite_genres : [];
+    tasteForm.querySelectorAll('input[name="favorite_genres"]').forEach(cb => {
+        cb.checked = picked.includes(cb.value);
+    });
+    hideTasteFormError();
+    
+    tasteModal.classList.add('active');
+    tasteModal.setAttribute('aria-hidden', 'false');
+}
+
+/**
+ * Close the favorite genres modal
+ */
+function closeTasteModal() {
+    tasteModal.classList.remove('active');
+    tasteModal.setAttribute('aria-hidden', 'true');
+}
+
+/**
+ * Handle favorite genres form submission
+ * @param {Event} e - Submit event
+ */
+async function handleSaveTaste(e) {
+    e.preventDefault();
+    hideTasteFormError();
+    
+    const genres = Array.from(tasteForm.querySelectorAll('input[name="favorite_genres"]:checked'))
+        .map(cb => cb.value);
+    
+    if (genres.length < 1 || genres.length > 5) {
+        showTasteFormError('Pick between 1 and 5 genres');
+        return;
+    }
+    
+    const submitBtn = tasteForm.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving...';
+    
+    try {
+        currentUser = await setFavoriteGenres(genres);
+        updateTasteDisplay();
+        closeTasteModal();
+        
+        // Re-rank rooms with the new taste
+        await loadRooms();
+    } catch (error) {
+        console.error('Error saving genres:', error);
+        showTasteFormError(error.message || 'Failed to save genres. Please try again.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Save';
+    }
+}
+
+/**
+ * Show favorite genres form error message
+ * @param {string} message - Error message
+ */
+function showTasteFormError(message) {
+    tasteFormError.textContent = message;
+    tasteFormError.classList.add('active');
+}
+
+/**
+ * Hide favorite genres form error message
+ */
+function hideTasteFormError() {
+    tasteFormError.textContent = '';
+    tasteFormError.classList.remove('active');
 }
 
 /**
@@ -70,6 +182,16 @@ function setupEventListeners() {
     
     // Create room form submission
     createRoomForm.addEventListener('submit', handleCreateRoom);
+    
+    // Favorite genres modal
+    document.getElementById('edit-taste-btn').addEventListener('click', openTasteModal);
+    document.getElementById('taste-modal-close').addEventListener('click', closeTasteModal);
+    tasteModal.addEventListener('click', (e) => {
+        if (e.target === tasteModal) {
+            closeTasteModal();
+        }
+    });
+    tasteForm.addEventListener('submit', handleSaveTaste);
 }
 
 /**
@@ -149,6 +271,7 @@ function createRoomCard(room) {
     
     // Build card HTML
     const isHighlyRecommended = room.similarity_score && room.similarity_score > 0.7;
+    const hasPickedGenres = currentUser && currentUser.favorite_genres.length > 0;
     
     card.innerHTML = `
         <div class="room-card-header">
@@ -161,6 +284,7 @@ function createRoomCard(room) {
         </div>
         <div class="room-card-footer">
             <span class="room-user-count">${room.user_count || 0} ${room.user_count === 1 ? 'user' : 'users'}</span>
+            ${hasPickedGenres ? `<span class="room-match">${Math.round(room.similarity_score * 100)}% match</span>` : ''}
         </div>
     `;
     

@@ -50,6 +50,9 @@ class User(Base):
     refresh_token_encrypted = Column(Text)
     token_expires_at = Column(TIMESTAMP)
     taste_vector = Column(JSONType, nullable=False)
+    # Genres the user picked; None until they choose (drives taste_vector,
+    # since Spotify no longer exposes genres or audio features)
+    favorite_genres = Column(ArrayType)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 

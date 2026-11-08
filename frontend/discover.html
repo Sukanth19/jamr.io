@@ -73,8 +73,13 @@
                 </div>
             </section>
 
-            <!-- Create Room Button -->
+            <!-- Taste Summary and Create Room Button -->
             <section class="actions-section">
+                <div class="taste-summary">
+                    <span class="taste-label">Your taste:</span>
+                    <span id="taste-genres" class="taste-genres">not set</span>
+                    <button id="edit-taste-btn" class="btn-link" type="button">Edit</button>
+                </div>
                 <button id="create-room-btn" class="btn btn-primary">Create Room</button>
             </section>
 
@@ -180,6 +185,72 @@
                     </div>
                     
                     <div id="form-error" class="form-error" role="alert" aria-live="polite"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Favorite Genres Modal -->
+    <div id="taste-modal" class="modal" role="dialog" aria-labelledby="taste-modal-title" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="taste-modal-title">What do you listen to?</h2>
+                <button class="modal-close" id="taste-modal-close" aria-label="Close modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="taste-form">
+                    <div class="form-group">
+                        <label>Pick 1-5 genres</label>
+                        <div class="genre-tags-selection">
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="rock">
+                                <span>Rock</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="pop">
+                                <span>Pop</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="hip-hop">
+                                <span>Hip-Hop</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="electronic">
+                                <span>Electronic</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="jazz">
+                                <span>Jazz</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="classical">
+                                <span>Classical</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="indie">
+                                <span>Indie</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="metal">
+                                <span>Metal</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="country">
+                                <span>Country</span>
+                            </label>
+                            <label class="genre-tag-checkbox">
+                                <input type="checkbox" name="favorite_genres" value="r&amp;b">
+                                <span>R&amp;B</span>
+                            </label>
+                        </div>
+                        <span class="form-hint">Rooms are recommended based on these genres</span>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                    
+                    <div id="taste-form-error" class="form-error" role="alert" aria-live="polite"></div>
                 </form>
             </div>
         </div>
