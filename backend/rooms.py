@@ -282,6 +282,7 @@ async def create_room(
 @router.get("/{room_id}")
 async def get_room(
     room_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
@@ -622,6 +623,7 @@ async def update_jam_link(
 @router.get("/{room_id}/messages")
 async def get_messages(
     room_id: int,
+    current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """

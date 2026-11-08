@@ -8,6 +8,7 @@ from backend.main import app
 from backend.models import Room, User, Message
 from backend.recommendation_engine import generate_room_taste_vector
 from backend.database import get_db
+from backend.auth import get_current_user
 from tests.conftest import get_test_session
 
 
@@ -22,6 +23,8 @@ def override_get_db():
             db.close()
 
     app.dependency_overrides[get_db] = _get_test_db
+    # The messages endpoint requires login; authenticate as a stub user
+    app.dependency_overrides[get_current_user] = lambda: User(id=1, display_name="Viewer")
     yield
     app.dependency_overrides.clear()
 

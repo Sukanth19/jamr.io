@@ -314,3 +314,12 @@ def test_get_current_user_session_without_user(db_session):
     
     assert exc_info.value.status_code == 401
     assert exc_info.value.detail["error"]["code"] == "USER_NOT_FOUND"
+
+
+@pytest.mark.parametrize("path", ["/api/rooms/1", "/api/rooms/1/messages"])
+def test_room_details_and_messages_require_login(path):
+    """Room details and chat history must not be readable without logging in."""
+    client.cookies.clear()
+    response = client.get(path)
+    
+    assert response.status_code == 401

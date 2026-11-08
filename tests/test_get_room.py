@@ -9,6 +9,7 @@ from backend.main import app
 from backend.models import User, Session as SessionModel, Room
 from backend.encryption import get_encryptor
 from backend.database import get_db
+from backend.auth import get_current_user
 from tests.conftest import get_test_session
 
 
@@ -21,6 +22,14 @@ def set_test_encryption_key(monkeypatch):
     """Set a test encryption key for all tests in this module."""
     monkeypatch.setenv('ENCRYPTION_KEY', TEST_ENCRYPTION_KEY)
     monkeypatch.setenv('DATABASE_URL', 'sqlite:///test.db')
+
+
+@pytest.fixture(autouse=True)
+def logged_in():
+    """GET /api/rooms/:room_id requires login; authenticate as a stub user."""
+    app.dependency_overrides[get_current_user] = lambda: User(id=1, display_name="Viewer")
+    yield
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture

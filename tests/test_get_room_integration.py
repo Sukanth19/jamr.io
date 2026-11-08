@@ -100,7 +100,10 @@ def test_create_and_get_room_integration(client, authenticated_user, db_session)
         room_id = created_room["id"]
         
         # Step 2: Retrieve the room by ID
-        get_response = client.get(f"/api/rooms/{room_id}")
+        get_response = client.get(
+            f"/api/rooms/{room_id}",
+            cookies={"session_token": session_token}
+        )
         
         assert get_response.status_code == 200
         retrieved_room = get_response.json()
@@ -160,7 +163,10 @@ def test_get_room_after_updating_jam_link(client, authenticated_user, db_session
         db_session.commit()
         
         # Retrieve the room and verify jam link is returned
-        get_response = client.get(f"/api/rooms/{room_id}")
+        get_response = client.get(
+            f"/api/rooms/{room_id}",
+            cookies={"session_token": session_token}
+        )
         
         assert get_response.status_code == 200
         retrieved_room = get_response.json()
