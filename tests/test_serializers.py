@@ -198,3 +198,16 @@ def test_serialize_message_without_username():
     # Verify other fields are present
     assert serialized["id"] == 1
     assert serialized["content"] == "Hello, world!"
+
+
+def test_utc_isoformat_marks_naive_timestamps_as_utc():
+    """Naive DB timestamps (UTC) must carry an offset so browsers don't treat them as local time."""
+    from datetime import timezone, timedelta
+    from backend.serializers import utc_isoformat
+    
+    assert utc_isoformat(datetime(2026, 11, 8, 18, 7)) == "2026-11-08T18:07:00+00:00"
+    assert utc_isoformat(None) is None
+    
+    # Already timezone-aware values are left as they are
+    ist = timezone(timedelta(hours=5, minutes=30))
+    assert utc_isoformat(datetime(2026, 11, 8, 23, 37, tzinfo=ist)) == "2026-11-08T23:37:00+05:30"

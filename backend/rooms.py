@@ -10,6 +10,7 @@ from backend.models import Room, User
 from backend.auth import get_current_user
 from backend.recommendation_engine import get_recommended_rooms, generate_room_taste_vector
 from backend.validators import validate_room_name, validate_room_description, validate_spotify_jam_link
+from backend.serializers import utc_isoformat
 
 # Create router for room endpoints
 router = APIRouter(prefix="/api/rooms", tags=["Rooms"])
@@ -696,7 +697,7 @@ async def get_messages(
             "user_id": message.user_id,
             "username": username,
             "content": message.content,
-            "created_at": message.created_at.isoformat() if message.created_at else None
+            "created_at": utc_isoformat(message.created_at)
         })
     
     return {

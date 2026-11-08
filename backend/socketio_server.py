@@ -27,6 +27,7 @@ from datetime import datetime
 from http.cookies import SimpleCookie
 
 from backend.rate_limiter import RateLimiter
+from backend.serializers import utc_isoformat
 
 # Load environment variables
 load_dotenv()
@@ -561,7 +562,7 @@ async def send_message(sid, data):
             'user_id': user_id,
             'username': user.display_name,
             'content': trimmed_content,
-            'timestamp': message.created_at.isoformat()
+            'timestamp': utc_isoformat(message.created_at)
         }, room=f'room_{room_id}')
         
         return {'success': True, 'message_id': message.id}

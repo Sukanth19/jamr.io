@@ -4,8 +4,24 @@ This module provides functions to serialize database models into safe
 API response dictionaries, excluding sensitive fields like encrypted tokens.
 """
 
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from backend.models import User, Room, Message
+
+
+def utc_isoformat(value: Optional[datetime]) -> Optional[str]:
+    """
+    Format a database-generated timestamp as ISO 8601 with a UTC offset.
+    
+    Columns filled by server_default=func.now() are stored as naive UTC.
+    Without an explicit offset, browsers parse them as local time and show
+    times shifted by the viewer's UTC offset.
+    """
+    if value is None:
+        return None
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.isoformat()
 
 
 def serialize_user(user: User, include_email: bool = True) -> Dict[str, Any]:
@@ -118,7 +134,7 @@ def serialize_message(message: Message, username: Optional[str] = None) -> Dict[
         "room_id": message.room_id,
         "user_id": message.user_id,
         "content": message.content,
-        "created_at": message.created_at.isoformat() if message.created_at else None
+        "created_at": utc_isoformat(message.created_at)
     }
     
     # Optionally include username
