@@ -311,6 +311,18 @@ async def spotify_oauth_callback(
             if profile_data.get("images") and len(profile_data["images"]) > 0:
                 profile_image_url = profile_data["images"][0].get("url")
             
+            # Fetch top artists: stored for shared-artist room matching, and
+            # their genres are a taste fallback where Spotify still returns them
+            top_artists_response = await client.get(
+                "https://api.spotify.com/v1/me/top/artists?limit=50&time_range=medium_term",
+                headers={"Authorization": f"Bearer {access_token}"}
+            )
+            top_artist_items = (
+                top_artists_response.json().get("items", [])
+                if top_artists_response.status_code == 200 else []
+            )
+            top_artists = [_summarize_artist(artist) for artist in top_artist_items]
+            
             # Fetch top tracks for taste vector generation
             top_tracks_response = await client.get(
                 "https://api.spotify.com/v1/me/top/tracks?limit=50&time_range=medium_term",
@@ -349,19 +361,13 @@ async def spotify_oauth_callback(
             # Fall back to top artists' genres (audio-features returns 403
             # for Spotify apps created after November 2024)
             if not taste_vector:
-                top_artists_response = await client.get(
-                    "https://api.spotify.com/v1/me/top/artists?limit=50&time_range=medium_term",
-                    headers={"Authorization": f"Bearer {access_token}"}
-                )
-
-                if top_artists_response.status_code == 200:
-                    spotify_genres = [
-                        genre
-                        for artist in top_artists_response.json().get("items", [])
-                        for genre in artist.get("genres", [])
-                    ]
-                    if map_spotify_genres(spotify_genres):
-                        taste_vector = generate_taste_vector_from_genres(spotify_genres)
+                spotify_genres = [
+                    genre
+                    for artist in top_artist_items
+                    for genre in artist.get("genres", [])
+                ]
+                if map_spotify_genres(spotify_genres):
+                    taste_vector = generate_taste_vector_from_genres(spotify_genres)
 
             # If no taste vector generated, use default
             if not taste_vector:
@@ -387,6 +393,7 @@ async def spotify_oauth_callback(
                     existing_user.access_token_encrypted = access_token_encrypted
                     existing_user.refresh_token_encrypted = refresh_token_encrypted
                     existing_user.token_expires_at = token_expires_at
+                    existing_user.top_artists = top_artists
                     # Keep the taste derived from genres the user picked
                     if not existing_user.favorite_genres:
                         existing_user.taste_vector = taste_vector
@@ -403,7 +410,8 @@ async def spotify_oauth_callback(
                         access_token_encrypted=access_token_encrypted,
                         refresh_token_encrypted=refresh_token_encrypted,
                         token_expires_at=token_expires_at,
-                        taste_vector=taste_vector
+                        taste_vector=taste_vector,
+                        top_artists=top_artists
                     )
                     db.add(user)
                     db.commit()
@@ -476,6 +484,24 @@ async def spotify_oauth_callback(
                 }
             }
         )
+
+
+def _summarize_artist(artist: dict) -> dict:
+    """
+    Keep only the artist fields needed for shared-artist matching and display.
+    
+    Args:
+        artist: Artist object from Spotify's top artists endpoint
+    
+    Returns:
+        dict: {"id", "name", "image"} where image is the smallest image URL or None
+    """
+    images = artist.get("images") or []
+    return {
+        "id": artist.get("id"),
+        "name": artist.get("name"),
+        "image": images[-1].get("url") if images else None
+    }
 
 
 def _generate_taste_vector(audio_features: list) -> dict:

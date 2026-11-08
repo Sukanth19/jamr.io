@@ -531,3 +531,26 @@ def _default_taste_vector() -> Dict[str, float]:
         'speechiness': 0.5,
         'tempo_normalized': 0.5
     }
+
+
+def find_shared_artists(user_artists: Optional[List[Dict]], others_artists: List[Optional[List[Dict]]]) -> List[str]:
+    """
+    Find the user's top artists that other people also have in their top artists.
+    
+    Args:
+        user_artists: The user's top artists ([{"id", "name", ...}]), in Spotify's
+            ranking order (most listened first).
+        others_artists: Top artist lists of the other people to compare against.
+    
+    Returns:
+        Names of shared artists, in the user's ranking order.
+    """
+    if not user_artists:
+        return []
+    
+    other_ids = {
+        artist.get("id")
+        for artists in others_artists if artists
+        for artist in artists
+    }
+    return [a["name"] for a in user_artists if a.get("id") in other_ids]

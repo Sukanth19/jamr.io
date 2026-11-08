@@ -53,6 +53,8 @@ class User(Base):
     # Genres the user picked; None until they choose (drives taste_vector,
     # since Spotify no longer exposes genres or audio features)
     favorite_genres = Column(ArrayType)
+    # Top artists from Spotify at last login: [{"id", "name", "image"}, ...]
+    top_artists = Column(JSONType)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 

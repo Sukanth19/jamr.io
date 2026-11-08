@@ -1,6 +1,6 @@
 """Room management API endpoints for jamr.io."""
 
-from typing import Optional, List
+from typing import Dict, List, Optional
 from fastapi import APIRouter, Depends, Query, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import Room, User
 from backend.auth import get_current_user
-from backend.recommendation_engine import get_recommended_rooms, generate_room_taste_vector
+from backend.recommendation_engine import get_recommended_rooms, generate_room_taste_vector, find_shared_artists
 from backend.validators import validate_room_name, validate_room_description, validate_spotify_jam_link
 from backend.serializers import utc_isoformat
 
@@ -153,10 +153,70 @@ async def get_rooms(
         user_taste_vector, rooms_data, user_genres=current_user.favorite_genres
     )
     
+    # Add artists the user shares with people in each room; among rooms with
+    # the same match score, rooms with more shared artists come first
+    shared = _shared_artists_by_room(db, current_user, [room.id for room in rooms])
+    for room_dict in recommended_rooms:
+        room_dict['shared_artists'] = shared.get(room_dict['id'], [])
+    recommended_rooms.sort(
+        key=lambda r: (r['similarity_score'], len(r['shared_artists'])),
+        reverse=True
+    )
+    
     return {
         "rooms": recommended_rooms,
         "total": len(recommended_rooms)
     }
+
+
+def _shared_artists_by_room(db: Session, current_user: User, room_ids: List[int]) -> Dict[int, List[str]]:
+    """
+    Find the current user's top artists shared with people in each room.
+    
+    "People in a room" are its current members, everyone who has posted a
+    message there, and its owner (excluding the current user).
+    
+    Args:
+        db: Database session
+        current_user: The user browsing rooms
+        room_ids: Rooms to compute shared artists for
+    
+    Returns:
+        dict: room_id -> names of shared artists (rooms with none are omitted)
+    """
+    from backend.models import RoomMembership, Message
+    
+    if not current_user.top_artists or not room_ids:
+        return {}
+    
+    # Collect the people associated with each room
+    people: Dict[int, set] = {room_id: set() for room_id in room_ids}
+    for room_id, user_id in db.query(RoomMembership.room_id, RoomMembership.user_id).filter(
+        RoomMembership.room_id.in_(room_ids)
+    ):
+        people[room_id].add(user_id)
+    for room_id, user_id in db.query(Message.room_id, Message.user_id).filter(
+        Message.room_id.in_(room_ids)
+    ).distinct():
+        people[room_id].add(user_id)
+    for room_id, owner_id in db.query(Room.id, Room.owner_id).filter(Room.id.in_(room_ids)):
+        people[room_id].add(owner_id)
+    
+    # Load everyone's top artists in one query
+    other_ids = {uid for uids in people.values() for uid in uids if uid and uid != current_user.id}
+    artists_by_user = dict(
+        db.query(User.id, User.top_artists).filter(User.id.in_(other_ids))
+    ) if other_ids else {}
+    
+    shared = {}
+    for room_id, user_ids in people.items():
+        names = find_shared_artists(
+            current_user.top_artists,
+            [artists_by_user.get(uid) for uid in user_ids if uid in artists_by_user]
+        )
+        if names:
+            shared[room_id] = names
+    return shared
 
 
 @router.post("", status_code=201)
