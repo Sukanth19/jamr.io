@@ -1,0 +1,20 @@
+[Unit]
+Description=jamr.io (FastAPI + Socket.IO)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+User=jamr
+WorkingDirectory=/opt/jamr
+EnvironmentFile=/etc/jamr.env
+# One process: live chat state (who's connected, rate limits) lives in memory.
+# Only reachable from this machine; Caddy forwards to it.
+ExecStart=/opt/jamr/venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

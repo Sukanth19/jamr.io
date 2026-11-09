@@ -1,0 +1,6 @@
+# {$SITE} is filled in by setup.sh with the VM's domain; Caddy fetches an
+# HTTPS certificate for it by itself. WebSockets (live chat) pass through.
+{$SITE} {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:8000
+}

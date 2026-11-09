@@ -112,6 +112,35 @@ python create_overseer.py <display-name>    # or your Spotify user ID
 
 There's only ever one Overseer, and the website can't create or assign one. Running it for someone else makes them the Overseer and the previous one an admin.
 
+## Deploy to Azure
+
+One small Ubuntu VM runs everything: the app, PostgreSQL, and Caddy in front with automatic HTTPS. [Azure for Students](https://azure.microsoft.com/free/students) covers this with its credit.
+
+1. **Create the VM.** In the Azure portal, go to **Virtual machines → Create → Azure virtual machine**:
+   - Image: **Ubuntu Server 24.04 LTS**, size: **B1s**
+   - Authentication: **SSH public key**. Download the key it generates and keep it safe.
+   - Inbound ports: allow **SSH (22), HTTP (80), HTTPS (443)**
+2. **Give it a web address.** Open the VM, click its **Public IP address**, go to **Configuration**, set a **DNS name label** (e.g. `jamr`) and save. The site becomes `jamr.<region>.cloudapp.azure.com`.
+3. **Add the address to Spotify.** In your Spotify app's settings, add the Redirect URI `https://jamr.<region>.cloudapp.azure.com/auth/callback`.
+4. **Install.** SSH in and run:
+   ```bash
+   ssh -i <your-key>.pem azureuser@<public-ip>
+   sudo git clone https://github.com/Sukanth19/jamr.io.git /opt/jamr
+   sudo bash /opt/jamr/deploy/setup.sh jamr.<region>.cloudapp.azure.com
+   ```
+   It asks for your Spotify client ID and secret, creates the database and secrets, and starts everything.
+5. **Make yourself the Overseer.** Log in on the site once, then:
+   ```bash
+   sudo bash /opt/jamr/deploy/run.sh create_overseer.py <your-spotify-display-name>
+   ```
+
+Afterwards:
+
+- **Ship new code** after pushing to GitHub: `sudo bash /opt/jamr/deploy/update.sh`
+- **Logs:** `sudo journalctl -u jamr -f`
+- **Settings** live in `/etc/jamr.env`. After editing, run `sudo systemctl restart jamr`.
+- **Backups:** the database is dumped daily to `/opt/jamr/backups` (the last 7 are kept).
+
 ## Tests
 
 ```bash
