@@ -58,6 +58,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             # HSTS: Force HTTPS for 1 year, include subdomains
             response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         
+        # Make browsers revalidate pages and static files on every load (cheap
+        # 304s via ETag/Last-Modified) so they never mix old CSS/JS with new HTML
+        path = request.url.path
+        if path.startswith("/static/") or path in ("/", "/discover", "/room"):
+            response.headers["Cache-Control"] = "no-cache"
+
         # Add other security headers (safe for both dev and prod)
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"

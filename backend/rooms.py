@@ -9,7 +9,7 @@ from backend.database import get_db
 from backend.models import Room, User
 from backend.auth import get_current_user
 from backend.recommendation_engine import get_recommended_rooms, generate_room_taste_vector, find_shared_artists
-from backend.validators import validate_room_name, validate_room_description, validate_spotify_jam_link
+from backend.validators import validate_room_name, validate_room_description, validate_spotify_jam_link, normalize_spotify_jam_link
 from backend.serializers import utc_isoformat
 
 # Create router for room endpoints
@@ -679,7 +679,7 @@ async def update_jam_link(
         )
     
     # Validate Spotify Jam link format
-    trimmed_link = jam_link_data.link.strip()
+    trimmed_link = normalize_spotify_jam_link(jam_link_data.link)
     is_valid, error_message = validate_spotify_jam_link(trimmed_link)
     
     if not is_valid:

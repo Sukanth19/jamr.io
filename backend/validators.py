@@ -31,12 +31,39 @@ def sanitize_html(text: str) -> str:
     return html.escape(text, quote=True)
 
 
+# Spotify Jam links as shared from the Spotify apps:
+#   https://open.spotify.com/socialsession/<id>  (desktop/web "Share" link)
+#   https://spotify.link/<code>                  (mobile short link)
+#   https://open.spotify.com/jam/<id>            (older format)
+JAM_LINK_PATTERN = r'^https://(open\.spotify\.com/(socialsession|jam)/[a-zA-Z0-9]+|spotify\.link/[a-zA-Z0-9]+)$'
+
+
+def normalize_spotify_jam_link(link: str) -> str:
+    """
+    Clean up a pasted Spotify Jam link before validation.
+    
+    Trims whitespace and drops the query string and fragment, which Spotify
+    adds for share tracking (e.g. ?si=...&utm_source=share-options-sheet).
+    
+    Args:
+        link: The link as pasted by the user
+        
+    Returns:
+        The link without surrounding whitespace, query string or fragment
+    """
+    if not link:
+        return link
+    
+    return link.strip().split('#', 1)[0].split('?', 1)[0]
+
+
 def validate_spotify_jam_link(link: str) -> Tuple[bool, str]:
     """
     Validate Spotify Jam link format.
     
-    A valid Spotify Jam link must match the pattern:
-    https://open.spotify.com/jam/<alphanumeric_id>
+    A valid Spotify Jam link matches JAM_LINK_PATTERN, e.g.
+    https://open.spotify.com/socialsession/<alphanumeric_id>. Pass links
+    through normalize_spotify_jam_link first to accept share-tracking params.
     
     Args:
         link: The Spotify Jam link to validate
@@ -55,11 +82,11 @@ def validate_spotify_jam_link(link: str) -> Tuple[bool, str]:
     if not link:
         return False, "Spotify Jam link cannot be empty"
     
-    # Pattern: https://open.spotify.com/jam/<alphanumeric_id>
-    pattern = r'^https://open\.spotify\.com/jam/[a-zA-Z0-9]+$'
-    
-    if not re.match(pattern, link):
-        return False, "Invalid Spotify Jam link format. Must be https://open.spotify.com/jam/<id>"
+    if not re.match(JAM_LINK_PATTERN, link):
+        return False, (
+            "Invalid Spotify Jam link. In Spotify, start a Jam, tap Share and copy the link "
+            "(https://open.spotify.com/socialsession/...)"
+        )
     
     return True, ""
 

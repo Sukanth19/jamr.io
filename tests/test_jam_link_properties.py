@@ -551,3 +551,35 @@ def test_property_29_room_member_can_update_jam_link(jam_id, room_name, spotify_
         db_session.query(User).delete()
         db_session.commit()
         db_session.close()
+
+
+@pytest.mark.parametrize("pasted, expected", [
+    # Desktop/web "Share" link with Spotify's tracking parameters
+    ("https://open.spotify.com/socialsession/5FtFK4tom5avRTf3eN6J1Q?si=b4wO5esHTd-gDxz2I401vw"
+     "&utm_source=share-options-sheet&utm_medium=share-link",
+     "https://open.spotify.com/socialsession/5FtFK4tom5avRTf3eN6J1Q"),
+    # Mobile short link, pasted with surrounding whitespace
+    ("  https://spotify.link/AbC123xyz  ", "https://spotify.link/AbC123xyz"),
+    ("https://open.spotify.com/jam/abc123#top", "https://open.spotify.com/jam/abc123"),
+])
+def test_real_jam_share_links_are_accepted_after_normalizing(pasted, expected):
+    from backend.validators import normalize_spotify_jam_link
+    
+    link = normalize_spotify_jam_link(pasted)
+    
+    assert link == expected
+    assert validate_spotify_jam_link(link) == (True, "")
+
+
+@pytest.mark.parametrize("link", [
+    "https://open.spotify.com/track/5FtFK4tom5avRTf3eN6J1Q?si=abc",
+    "https://evil.example/socialsession/abc123",
+    "http://open.spotify.com/socialsession/abc123",
+])
+def test_non_jam_links_are_rejected_after_normalizing(link):
+    from backend.validators import normalize_spotify_jam_link
+    
+    is_valid, error_message = validate_spotify_jam_link(normalize_spotify_jam_link(link))
+    
+    assert is_valid is False
+    assert "Jam link" in error_message

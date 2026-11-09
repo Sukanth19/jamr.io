@@ -600,7 +600,7 @@ async def update_jam_link(sid, data):
     """
     from backend.database import get_session_local
     from backend.models import Room, User, RoomMembership
-    from backend.validators import validate_spotify_jam_link
+    from backend.validators import validate_spotify_jam_link, normalize_spotify_jam_link
     
     # Extract room_id and link from event data
     room_id = data.get('room_id')
@@ -613,7 +613,7 @@ async def update_jam_link(sid, data):
         return {'error': 'link is required'}
     
     # Trim whitespace from link
-    trimmed_link = link.strip()
+    trimmed_link = normalize_spotify_jam_link(link)
     
     # Get user_id from sid mapping
     user_id = active_connections.get(sid)

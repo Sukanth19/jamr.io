@@ -124,3 +124,12 @@ def test_cookie_secure_flag_in_production():
     
     # Reset environment
     os.environ["ENVIRONMENT"] = "development"
+
+
+@pytest.mark.parametrize("path", ["/", "/discover", "/static/css/main.css", "/static/js/room.js"])
+def test_pages_and_static_files_must_be_revalidated(path):
+    """Browsers must revalidate pages and assets so they never mix old CSS/JS with new HTML."""
+    response = TestClient(app).get(path)
+    
+    assert response.status_code == 200
+    assert response.headers["cache-control"] == "no-cache"

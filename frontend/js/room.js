@@ -303,30 +303,31 @@ function sendMessage() {
  */
 function updateJamLink() {
     const input = document.getElementById('jam-link-input');
-    const link = input.value.trim();
+    
+    // Drop the share-tracking query string Spotify adds (?si=...&utm_...)
+    const link = input.value.trim().split('#')[0].split('?')[0];
     
     if (link.length === 0) {
         showToast('Please enter a Spotify Jam link', 'error');
         return;
     }
     
-    // Validate Spotify Jam link format
-    const jamLinkPattern = /^https:\/\/open\.spotify\.com\/jam\/[a-zA-Z0-9]+/;
+    // Same formats as the server: open.spotify.com/socialsession/<id>,
+    // open.spotify.com/jam/<id> or spotify.link/<code>
+    const jamLinkPattern = /^https:\/\/(open\.spotify\.com\/(socialsession|jam)\/[a-zA-Z0-9]+|spotify\.link\/[a-zA-Z0-9]+)$/;
     if (!jamLinkPattern.test(link)) {
-        showToast('Invalid Spotify Jam link format', 'error');
+        showToast('That doesn\'t look like a Spotify Jam link. In Spotify, start a Jam, tap Share and copy the link.', 'error');
         return;
     }
     
-    // Emit update via Socket.IO
-    const success = emitEvent('update_jam_link', {
-        room_id: currentRoomId,
-        link: link
-    });
-    
-    if (success) {
-        // Clear input
+    // Emit update via Socket.IO and report any server-side rejection
+    emitEvent('update_jam_link', { room_id: currentRoomId, link: link }, (response) => {
+        if (response && response.error) {
+            showToast(response.error, 'error');
+            return;
+        }
         input.value = '';
-    }
+    });
 }
 
 /**
