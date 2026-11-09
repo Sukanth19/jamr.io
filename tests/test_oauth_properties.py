@@ -309,9 +309,9 @@ def test_user_profile_requires_all_mandatory_fields(profile):
         from backend.models import User as UserModel
         
         # Check column definitions
-        assert UserModel.spotify_id.nullable == False, "spotify_id should be non-nullable"
+        # Spotify is optional (accounts can use a username and password instead),
+        # so spotify_id and access_token_encrypted may be empty
         assert UserModel.display_name.nullable == False, "display_name should be non-nullable"
-        assert UserModel.access_token_encrypted.nullable == False, "access_token_encrypted should be non-nullable"
         assert UserModel.taste_vector.nullable == False, "taste_vector should be non-nullable"
         
         # Test that a valid user can be created with all required fields

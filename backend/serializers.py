@@ -57,6 +57,9 @@ def serialize_user(user: User, include_email: bool = True) -> Dict[str, Any]:
     user_dict = {
         "id": user.id,
         "spotify_id": user.spotify_id,
+        "username": user.username,
+        "has_password": bool(user.password_hash),
+        "spotify_connected": bool(user.spotify_id),
         "display_name": user.display_name,
         "profile_image_url": user.profile_image_url,
         "taste_vector": user.taste_vector,

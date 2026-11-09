@@ -61,7 +61,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         # Make browsers revalidate pages and static files on every load (cheap
         # 304s via ETag/Last-Modified) so they never mix old CSS/JS with new HTML
         path = request.url.path
-        if path.startswith("/static/") or path in ("/", "/discover", "/room", "/admin"):
+        if path.startswith("/static/") or path in ("/", "/discover", "/room", "/admin", "/login", "/account"):
             response.headers["Cache-Control"] = "no-cache"
 
         # Add other security headers (safe for both dev and prod)
@@ -79,11 +79,13 @@ app.add_middleware(SecurityHeadersMiddleware)
 from backend.auth import router as auth_router
 from backend.rooms import router as rooms_router
 from backend.admin import router as admin_router
+from backend.accounts import router as accounts_router
 
 # Include routers
 app.include_router(auth_router)
 app.include_router(rooms_router)
 app.include_router(admin_router)
+app.include_router(accounts_router)
 
 # Mount static files directory for frontend
 # This will serve HTML, CSS, and JavaScript files
@@ -177,6 +179,18 @@ async def root():
 async def discover_page():
     """Serve the room discovery page."""
     return FileResponse("frontend/discover.html")
+
+
+@app.get("/login", tags=["Pages"], include_in_schema=False)
+async def login_page():
+    """Serve the log in / sign up page."""
+    return FileResponse("frontend/login.html")
+
+
+@app.get("/account", tags=["Pages"], include_in_schema=False)
+async def account_page():
+    """Serve the account settings page."""
+    return FileResponse("frontend/account.html")
 
 
 @app.get("/admin", tags=["Pages"], include_in_schema=False)

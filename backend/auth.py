@@ -22,6 +22,7 @@ from backend.recommendation_engine import (
     generate_room_taste_vector,
 )
 from backend.serializers import serialize_user
+from backend.sessions import start_session, user_for_session
 
 # Load environment variables
 load_dotenv()
@@ -128,7 +129,8 @@ async def spotify_oauth_callback(
     code: str = None,
     state: str = None,
     error: str = None,
-    oauth_state: str = Cookie(None, alias=STATE_COOKIE)
+    oauth_state: str = Cookie(None, alias=STATE_COOKIE),
+    session_token: str = Cookie(None, alias="session_token")
 ):
     """
     Handle Spotify OAuth callback.
@@ -149,7 +151,6 @@ async def spotify_oauth_callback(
     Raises:
         HTTPException: If state verification fails, code exchange fails, or other errors occur
     """
-    from backend.database import get_db
     from backend.models import User
     from backend.encryption import get_encryptor
     
@@ -382,24 +383,32 @@ async def spotify_oauth_callback(
             db_gen = get_db()
             db = next(db_gen)
             try:
-                # Check if user already exists
+                # Logged in already: connect Spotify to that account instead of logging in
+                linking_user = user_for_session(db, session_token)
                 existing_user = db.query(User).filter(User.spotify_id == spotify_id).first()
                 
-                if existing_user:
-                    # Update existing user
-                    existing_user.display_name = display_name
-                    existing_user.email = email
-                    existing_user.profile_image_url = profile_image_url
-                    existing_user.access_token_encrypted = access_token_encrypted
-                    existing_user.refresh_token_encrypted = refresh_token_encrypted
-                    existing_user.token_expires_at = token_expires_at
-                    existing_user.top_artists = top_artists
+                if linking_user and existing_user and existing_user.id != linking_user.id:
+                    response = RedirectResponse(url="/account?spotify=taken", status_code=302)
+                    response.delete_cookie(STATE_COOKIE)
+                    return response
+                
+                user = linking_user or existing_user
+                if user:
+                    # Update the account's Spotify details
+                    user.spotify_id = spotify_id
+                    if not linking_user:
+                        user.display_name = display_name
+                    user.email = email
+                    user.profile_image_url = profile_image_url
+                    user.access_token_encrypted = access_token_encrypted
+                    user.refresh_token_encrypted = refresh_token_encrypted
+                    user.token_expires_at = token_expires_at
+                    user.top_artists = top_artists
                     # Keep the taste derived from genres the user picked
-                    if not existing_user.favorite_genres:
-                        existing_user.taste_vector = taste_vector
-                    existing_user.updated_at = datetime.now()
+                    if not user.favorite_genres:
+                        user.taste_vector = taste_vector
+                    user.updated_at = datetime.now()
                     db.commit()
-                    user = existing_user
                 else:
                     # Create new user
                     user = User(
@@ -417,43 +426,14 @@ async def spotify_oauth_callback(
                     db.commit()
                     db.refresh(user)
                 
-                # Generate unique session token
-                session_token = secrets.token_urlsafe(32)
-                
-                # Calculate session expiration (7 days from now)
-                session_expires_at = datetime.now() + timedelta(days=7)
-                
-                # Store session in database
-                from backend.models import Session as SessionModel
-                
-                session = SessionModel(
-                    user_id=user.id,
-                    token=session_token,
-                    expires_at=session_expires_at
-                )
-                db.add(session)
-                db.commit()
-                
-                # Create redirect response
-                response = RedirectResponse(url="/discover", status_code=302)
+                if linking_user:
+                    response = RedirectResponse(url="/account?spotify=connected", status_code=302)
+                else:
+                    response = RedirectResponse(url="/discover", status_code=302)
+                    start_session(db, user, response)
                 
                 # State is single-use: clear the cookie
                 response.delete_cookie(STATE_COOKIE)
-                
-                # Get environment (default to development)
-                environment = os.getenv("ENVIRONMENT", "development")
-                is_production = environment == "production"
-                
-                # Set HTTP-only cookie with session token
-                response.set_cookie(
-                    key="session_token",
-                    value=session_token,
-                    httponly=True,
-                    max_age=7 * 24 * 60 * 60,  # 7 days in seconds
-                    secure=is_production,  # Only send over HTTPS in production
-                    samesite="lax"  # CSRF protection
-                )
-                
                 return response
                 
             finally:

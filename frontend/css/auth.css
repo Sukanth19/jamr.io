@@ -1,0 +1,182 @@
+/* Log in / sign up and account pages */
+
+.auth-page {
+    display: flex;
+    justify-content: center;
+    padding: 56px 16px;
+}
+
+.auth-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 28px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.auth-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 24px;
+    background: var(--surface-2);
+    border-radius: 999px;
+}
+
+.auth-tab {
+    padding: 8px;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-muted);
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.auth-tab[aria-selected="true"] {
+    background: var(--surface-3);
+    color: var(--text);
+}
+
+.auth-form h1 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.auth-subtitle {
+    color: var(--text-muted);
+    margin: 4px 0 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.optional {
+    color: var(--text-faint);
+    font-weight: 400;
+}
+
+.form-hint {
+    color: var(--text-faint);
+    font-size: 0.8rem;
+}
+
+.form-error {
+    display: none;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: var(--danger-soft);
+    border: 1px solid rgba(240, 68, 68, 0.35);
+    border-radius: var(--radius-sm);
+    color: #fecaca;
+    font-size: 0.9rem;
+}
+
+.form-error.active {
+    display: block;
+}
+
+.form-success {
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    background: var(--accent-soft);
+    border: 1px solid var(--accent-border);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
+    font-size: 0.9rem;
+}
+
+.auth-submit {
+    width: 100%;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-faint);
+    font-size: 0.85rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.auth-spotify {
+    width: 100%;
+}
+
+.auth-note {
+    margin-top: 10px;
+    color: var(--text-faint);
+    font-size: 0.8rem;
+    text-align: center;
+}
+
+/* ---------- Account page ---------- */
+
+.account-page {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 40px 0;
+}
+
+.account-page > h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+}
+
+.account-section {
+    padding: 22px;
+    margin-bottom: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+}
+
+.account-section h2 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.account-section > p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+.account-section form .btn {
+    margin-top: 4px;
+}
+
+.spotify-status {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.spotify-status strong {
+    color: var(--accent);
+}

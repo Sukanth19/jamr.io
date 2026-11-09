@@ -42,11 +42,15 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, index=True)
-    spotify_id = Column(String(255), unique=True, nullable=False, index=True)
+    # Set for accounts with Spotify connected (login or "Connect Spotify")
+    spotify_id = Column(String(255), unique=True, nullable=True, index=True)
+    # Username and password for jamr.io's own login; None for Spotify-only accounts
+    username = Column(String(24))
+    password_hash = Column(Text)
     display_name = Column(String(255), nullable=False)
     email = Column(String(255))
     profile_image_url = Column(Text)
-    access_token_encrypted = Column(Text, nullable=False)
+    access_token_encrypted = Column(Text)
     refresh_token_encrypted = Column(Text)
     token_expires_at = Column(TIMESTAMP)
     taste_vector = Column(JSONType, nullable=False)
@@ -64,6 +68,8 @@ class User(Base):
     
     __table_args__ = (
         CheckConstraint("role IN ('user', 'mod', 'admin', 'overseer')", name="ck_users_role"),
+        # Usernames are unique regardless of case
+        Index('uq_users_username_lower', func.lower(username), unique=True),
         # At most one overseer
         Index('one_overseer', 'role', unique=True,
               postgresql_where=text("role = 'overseer'"), sqlite_where=text("role = 'overseer'")),

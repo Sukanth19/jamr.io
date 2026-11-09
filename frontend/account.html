@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account - jamr.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a href="/discover" class="brand">jamr<span>.io</span></a>
+            <div class="topbar-user" id="topbar-user" hidden>
+                <span class="avatar" id="topbar-avatar" aria-hidden="true"></span>
+                <a class="topbar-user-name" id="topbar-user-name" href="/account" title="Your account"></a>
+                <button class="btn btn-ghost btn-sm" id="logout-btn" type="button">Log out</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container account-page">
+        <h1>Your account</h1>
+
+        <!-- Profile -->
+        <section class="account-section">
+            <h2>Profile</h2>
+            <p>This is the name people see in rooms.</p>
+            <form id="profile-form" novalidate>
+                <div class="form-group">
+                    <label for="display-name">Display name</label>
+                    <input type="text" id="display-name" class="input" maxlength="50" required>
+                </div>
+                <div id="profile-message" role="status"></div>
+                <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            </form>
+        </section>
+
+        <!-- Username and password -->
+        <section class="account-section">
+            <h2 id="login-title">Login</h2>
+            <p id="login-intro"></p>
+            <form id="password-form" novalidate>
+                <div class="form-group" id="new-username-group" hidden>
+                    <label for="new-username">Username</label>
+                    <input type="text" id="new-username" class="input" autocomplete="username" autocapitalize="none"
+                           spellcheck="false" maxlength="24">
+                    <span class="form-hint">3-24 characters: letters, numbers, _ or -</span>
+                </div>
+                <div class="form-group" id="current-password-group" hidden>
+                    <label for="current-password">Current password</label>
+                    <input type="password" id="current-password" class="input" autocomplete="current-password" maxlength="128">
+                </div>
+                <div class="form-group">
+                    <label for="new-password">New password</label>
+                    <input type="password" id="new-password" class="input" autocomplete="new-password" maxlength="128">
+                    <span class="form-hint">At least 8 characters</span>
+                </div>
+                <div id="password-message" role="status"></div>
+                <button type="submit" class="btn btn-primary btn-sm" id="password-submit">Save password</button>
+            </form>
+        </section>
+
+        <!-- Spotify -->
+        <section class="account-section">
+            <h2>Spotify</h2>
+            <p>Connect Spotify to see which of your top artists people in each room also love. Spotify only lets a few invited testers connect for now.</p>
+            <div id="spotify-message" role="status"></div>
+            <div class="spotify-status" id="spotify-status"></div>
+        </section>
+    </main>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/account.js"></script>
+</body>
+</html>

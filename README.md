@@ -1,6 +1,6 @@
 # jamr.io
 
-Music chat rooms for people with similar taste. Log in with Spotify, pick the genres you're into, and jamr.io ranks rooms by how well they match you, shows which of your top artists the people in each room also love, and lets everyone chat in real time and listen together through a shared Spotify Jam.
+Music chat rooms for people with similar taste. Sign up, pick the genres you're into, and jamr.io ranks rooms by how well they match you, shows which of your top artists the people in each room also love, and lets everyone chat in real time and listen together through a shared Spotify Jam.
 
 ![Discover page](docs/screenshots/discover.png)
 
@@ -10,17 +10,20 @@ Music chat rooms for people with similar taste. Log in with Spotify, pick the ge
 
 ## Features
 
-- **Spotify login** (OAuth), with sessions in HTTP-only cookies and Spotify tokens encrypted at rest (Fernet)
+- **Accounts**: sign up with a username and password (scrypt-hashed), or log in with Spotify; sessions in HTTP-only cookies
+- **Optional Spotify connection** for shared-artist matching, with Spotify tokens encrypted at rest (Fernet)
 - **Taste matching**: rooms are ranked by how well their genres match the genres you picked. Close genres (e.g. hip-hop and R&B) count partially
-- **Shared artists**: each room shows which of your Spotify top artists its members, chatters and owner also have
+- **Shared artists**: each room shows which of your Spotify top artists its members, chatters and owner also have (for people who connected Spotify)
 - **Real-time chat** over Socket.IO: messages, who's here now, join/leave notices
 - **Listen together**: share a Spotify Jam link with the room
 - **Roles and moderation**: mods, admins and one overseer; a Control page for roles and suspensions (see [Roles](#roles))
 - Chat rate limiting (10 messages per 10 seconds per user)
 
-> **Why pick genres manually?** Spotify no longer gives development-mode apps
-> artist genres or audio features, so taste can't be derived automatically.
-> Top artists are still available, which is what shared-artist matching uses.
+> **Why is Spotify optional?** Spotify development-mode apps are limited to 5
+> allowlisted users, and its extended quota now requires a registered business
+> with 250k monthly users. So jamr.io has its own accounts, and Spotify is only
+> used, by up to 5 people, for shared-artist matching. It also no longer gives
+> genres or audio features, which is why you pick genres yourself.
 
 ## Tech stack
 
@@ -34,7 +37,7 @@ Music chat rooms for people with similar taste. Log in with Spotify, pick the ge
 
 - Python 3.12 (e.g. via [uv](https://docs.astral.sh/uv/))
 - Docker (for PostgreSQL), or any PostgreSQL 14+
-- A **Spotify Premium** account. Since February 2026, Spotify only allows Premium accounts to use the Web API from development-mode apps.
+- Optional, for Spotify login and shared artists: a **Spotify Premium** account. Since February 2026, Spotify only allows Premium accounts to use the Web API from development-mode apps.
 
 ### 1. Install dependencies
 
@@ -54,7 +57,9 @@ docker run -d --name jamr-db \
 
 After a reboot, start it again with `docker start jamr-db`.
 
-### 3. Create a Spotify app
+### 3. Create a Spotify app (optional)
+
+Skip this if you don't need Spotify login or shared artists; everything else works with username/password accounts.
 
 1. Go to the [Spotify developer dashboard](https://developer.spotify.com/dashboard) and click **Create app**.
 2. Set the redirect URI to exactly `http://127.0.0.1:8000/auth/callback`. Spotify no longer accepts `localhost`.
@@ -92,7 +97,7 @@ To try live chat, open the same room in a private window logged in as a second S
 
 | Role | Can |
 | --- | --- |
-| Visitor (logged out) | See the landing page and featured rooms |
+| Visitor (logged out) | See the landing page and featured rooms, sign up |
 | User | Create rooms and chat; delete **their own** messages; edit and delete **their own** rooms |
 | Room owner | Whoever created a room: also delete any message in it and remove its Jam link (unless the author outranks them) |
 | Moderator | Delete messages and rooms of anyone ranked below them; suspend people below them |
@@ -103,11 +108,11 @@ Everyone starts as **User**. Staff manage roles and suspensions on the **Control
 
 ### Make yourself the Overseer (once)
 
-Log in on the website once, then:
+Sign up on the website, then:
 
 ```bash
-python create_overseer.py --list           # find your account
-python create_overseer.py <display-name>    # or your Spotify user ID
+python create_overseer.py --list        # find your account
+python create_overseer.py <username>    # or display name / Spotify user ID
 ```
 
 There's only ever one Overseer, and the website can't create or assign one. Running it for someone else makes them the Overseer and the previous one an admin.
@@ -121,7 +126,7 @@ One small Ubuntu VM runs everything: the app, PostgreSQL, and Caddy in front wit
    - Authentication: **SSH public key**. Download the key it generates and keep it safe.
    - Inbound ports: allow **SSH (22), HTTP (80), HTTPS (443)**
 2. **Give it a web address.** Open the VM, click its **Public IP address**, go to **Configuration**, set a **DNS name label** (e.g. `jamr`) and save. The site becomes `jamr.<region>.cloudapp.azure.com`.
-3. **Add the address to Spotify.** In your Spotify app's settings, add the Redirect URI `https://jamr.<region>.cloudapp.azure.com/auth/callback`.
+3. **Add the address to Spotify** (if you use Spotify). In your Spotify app's settings, add the Redirect URI `https://jamr.<region>.cloudapp.azure.com/auth/callback`.
 4. **Install.** SSH in and run:
    ```bash
    ssh -i <your-key>.pem azureuser@<public-ip>
@@ -129,9 +134,9 @@ One small Ubuntu VM runs everything: the app, PostgreSQL, and Caddy in front wit
    sudo bash /opt/jamr/deploy/setup.sh jamr.<region>.cloudapp.azure.com
    ```
    It asks for your Spotify client ID and secret, creates the database and secrets, and starts everything.
-5. **Make yourself the Overseer.** Log in on the site once, then:
+5. **Make yourself the Overseer.** Sign up on the site, then:
    ```bash
-   sudo bash /opt/jamr/deploy/run.sh create_overseer.py <your-spotify-display-name>
+   sudo bash /opt/jamr/deploy/run.sh create_overseer.py <your-username>
    ```
 
 Afterwards:
@@ -154,7 +159,9 @@ Tests use a temporary SQLite database, so they don't need PostgreSQL or Spotify.
 ```
 backend/
   main.py                  FastAPI app, page routes, middleware, startup
-  auth.py                  Spotify OAuth, sessions, /auth/me, favorite genres
+  auth.py                  Spotify OAuth (login and connect), /auth/me, favorite genres
+  accounts.py              Username/password sign up and login, account settings
+  sessions.py              Password hashing and login sessions
   rooms.py                 Room REST API, recommendations, shared artists, moderation
   admin.py                 Control panel API: roles and suspensions
   permissions.py           Roles and who may do what
@@ -173,10 +180,15 @@ tests/                     pytest suite
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
-| GET | `/auth/spotify` | | Start Spotify login |
+| POST | `/auth/signup` | | Create an account (`username`, `password`, optional `display_name`) and log in |
+| POST | `/auth/login` | | Log in with username and password |
+| GET | `/auth/spotify` | | Log in with Spotify, or connect it when already logged in |
 | GET | `/auth/callback` | | Spotify OAuth callback |
 | POST | `/auth/logout` | ✓ | Log out |
 | GET | `/auth/me` | ✓ | Current user |
+| PATCH | `/auth/me` | ✓ | Change display name |
+| PUT | `/auth/me/password` | ✓ | Set or change password (Spotify-made accounts also pick a username) |
+| DELETE | `/auth/me/spotify` | ✓ | Disconnect Spotify (needs a password) |
 | PUT | `/auth/me/genres` | ✓ | Set 1-5 favorite genres |
 | GET | `/api/rooms` | ✓ | Rooms ranked for the current user (`?search=`, `?genres=`) |
 | GET | `/api/rooms/featured` | | Public room summaries and stats for the landing page |
@@ -196,5 +208,5 @@ Socket.IO (at `/socket.io/`, authenticated by the session cookie) handles `join_
 ## Known limitations
 
 - Socket.IO connection state and rate limits live in memory, so run a single server process. Scaling out would need Redis.
-- Spotify development mode allows at most 5 users per app. Opening it up needs Spotify's extended quota approval.
+- Spotify development mode allows at most 5 people to connect Spotify. Everyone else uses username/password accounts without shared artists.
 - Top artists are refreshed only when a user logs in.

@@ -2,7 +2,7 @@
 """Make an existing account the Overseer (the single highest role).
 
     python create_overseer.py --list              # show accounts
-    python create_overseer.py <name-or-spotify-id> # make that account the overseer
+    python create_overseer.py <username-or-name>   # make that account the overseer
 
 Log in through the website once first so the account exists. If there is
 already an overseer, they become an admin. The Overseer can't be created or
@@ -22,7 +22,7 @@ from backend.models import User  # noqa: E402
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("account", nargs="?", help="Spotify display name or Spotify user ID")
+    ap.add_argument("account", nargs="?", help="username, display name or Spotify user ID")
     ap.add_argument("--list", action="store_true", help="list accounts and their roles")
     args = ap.parse_args()
 
@@ -30,12 +30,13 @@ def main() -> None:
     try:
         if args.list or not args.account:
             for user in db.query(User).order_by(User.id):
-                print(f"{user.id:>4}  {user.role:<8}  {user.display_name}  ({user.spotify_id})")
+                login = f"@{user.username}" if user.username else f"spotify:{user.spotify_id}"
+                print(f"{user.id:>4}  {user.role:<8}  {user.display_name}  ({login})")
             if not args.account:
                 return
 
         matches = db.query(User).filter(
-            (User.spotify_id == args.account) | (User.display_name == args.account)
+            (User.spotify_id == args.account) | (User.display_name == args.account) | (User.username == args.account)
         ).all()
         if not matches:
             sys.exit(f"No account called {args.account!r}. Log in on the website first, or use --list.")

@@ -75,7 +75,8 @@ async function loadUsers() {
 function renderUsers() {
     const list = document.getElementById('user-list');
     const query = document.getElementById('user-search').value.trim().toLowerCase();
-    const shown = users.filter(u => u.display_name.toLowerCase().includes(query));
+    const shown = users.filter(u => u.display_name.toLowerCase().includes(query)
+        || (u.username || '').toLowerCase().includes(query));
 
     document.getElementById('user-total').textContent = `${shown.length} of ${users.length}`;
     list.innerHTML = '';
@@ -119,9 +120,10 @@ function createUserRow(user) {
 
     const meta = document.createElement('div');
     meta.className = 'user-meta';
+    const handle = user.username ? `@${user.username} · ` : '';
     meta.textContent = user.suspended
-        ? `Suspended ${formatSuspension(user.suspended_until)}`
-        : `Joined ${new Date(user.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        ? `${handle}Suspended ${formatSuspension(user.suspended_until)}`
+        : `${handle}Joined ${new Date(user.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}`;
     if (user.suspended) meta.classList.add('suspended');
 
     text.append(name, meta);

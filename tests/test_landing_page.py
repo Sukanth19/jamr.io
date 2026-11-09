@@ -22,7 +22,7 @@ def test_landing_page_serves_html():
     assert response.status_code == 200
     assert "text/html" in response.headers.get("content-type", "")
     assert b"jamr.io" in response.content
-    assert b"Login with Spotify" in response.content
+    assert b"Sign up" in response.content
 
 
 def test_landing_page_has_hero_section():
@@ -38,17 +38,26 @@ def test_landing_page_has_hero_section():
     assert b"hero" in response.content
 
 
-def test_landing_page_has_login_button():
+def test_landing_page_has_signup_and_login_buttons():
     """
-    Test that the landing page has a Spotify login button.
+    Test that the landing page links to sign up and log in (Spotify is
+    optional, offered on the login page).
     
     **Validates: Requirements 11.3**
     """
     response = client.get("/")
     
     assert response.status_code == 200
-    assert b"Login with Spotify" in response.content
-    assert b"/auth/spotify" in response.content
+    assert b'href="/login?mode=signup"' in response.content
+    assert b'href="/login"' in response.content
+
+
+def test_login_page_offers_password_and_spotify_login():
+    response = client.get("/login")
+    
+    assert response.status_code == 200
+    assert b'id="auth-form"' in response.content
+    assert b'href="/auth/spotify"' in response.content
 
 
 def test_landing_page_has_statistics_section():

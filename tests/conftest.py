@@ -74,13 +74,17 @@ def setup_test_db():
 
 @pytest.fixture(autouse=True)
 def clear_active_connections():
-    """Reset global Socket.IO state (sid mapping, chat rate limits) between tests."""
+    """Reset global in-memory state (socket sid mapping, rate limits) between tests."""
     from backend.socketio_server import active_connections, message_rate_limiter
+    from backend.accounts import signup_limiter, login_limiter
+    limiters = (message_rate_limiter, signup_limiter, login_limiter)
     active_connections.clear()
-    message_rate_limiter.clear_all()
+    for limiter in limiters:
+        limiter.clear_all()
     yield
     active_connections.clear()
-    message_rate_limiter.clear_all()
+    for limiter in limiters:
+        limiter.clear_all()
 
 
 @pytest.fixture

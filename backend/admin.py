@@ -49,6 +49,7 @@ def _user_row(actor: User, user: User) -> dict:
     return {
         "id": user.id,
         "display_name": user.display_name,
+        "username": user.username,
         "profile_image_url": user.profile_image_url,
         "role": user.role,
         "suspended": is_suspended(user),

@@ -105,6 +105,7 @@ async function updateCallsToAction() {
     const heroCta = document.getElementById('hero-cta');
     heroCta.href = '/discover';
     heroCta.textContent = 'Open your rooms';
+    document.getElementById('hero-login').hidden = true;
 
     const topbarCta = document.getElementById('topbar-cta');
     topbarCta.href = '/discover';

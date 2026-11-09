@@ -67,6 +67,7 @@ async function loadCurrentUser() {
         currentUser = await getCurrentUser();
         initTopbar(currentUser);
         updateTasteDisplay();
+        document.getElementById('spotify-hint').hidden = currentUser.spotify_connected;
     } catch (error) {
         console.error('Error loading user:', error);
     }

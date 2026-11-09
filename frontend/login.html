@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Log in - jamr.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/auth.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a href="/" class="brand">jamr<span>.io</span></a>
+        </div>
+    </header>
+
+    <main class="auth-page">
+        <div class="auth-card">
+            <div class="auth-tabs" role="tablist">
+                <button type="button" class="auth-tab" id="tab-login" role="tab" aria-selected="true">Log in</button>
+                <button type="button" class="auth-tab" id="tab-signup" role="tab" aria-selected="false">Sign up</button>
+            </div>
+
+            <form id="auth-form" class="auth-form" novalidate>
+                <h1 id="auth-title">Welcome back</h1>
+                <p id="auth-subtitle" class="auth-subtitle">Log in to find your rooms.</p>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" class="input" autocomplete="username" autocapitalize="none"
+                           spellcheck="false" maxlength="24" required>
+                    <span class="form-hint" id="username-hint" hidden>3-24 characters: letters, numbers, _ or -</span>
+                </div>
+
+                <div class="form-group" id="display-name-group" hidden>
+                    <label for="display-name">Display name <span class="optional">(optional)</span></label>
+                    <input type="text" id="display-name" class="input" maxlength="50" placeholder="What others see">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" class="input" autocomplete="current-password" maxlength="128" required>
+                    <span class="form-hint" id="password-hint" hidden>At least 8 characters</span>
+                </div>
+
+                <div id="auth-error" class="form-error" role="alert" aria-live="polite"></div>
+
+                <button type="submit" class="btn btn-primary auth-submit" id="auth-submit">Log in</button>
+            </form>
+
+            <div class="auth-divider"><span>or</span></div>
+
+            <a href="/auth/spotify" class="btn btn-secondary auth-spotify">Continue with Spotify</a>
+            <p class="auth-note">Spotify login is invite-only for now. You can connect Spotify to any account later from your account page.</p>
+        </div>
+    </main>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/login.js"></script>
+</body>
+</html>

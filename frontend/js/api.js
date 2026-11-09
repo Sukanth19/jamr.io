@@ -22,6 +22,12 @@ async function apiRequest(endpoint, options = {}) {
             }
         });
 
+        // Logged out or session expired: go log in, then come back here
+        if (response.status === 401 && window.location.pathname !== '/login') {
+            const here = window.location.pathname + window.location.search;
+            window.location.href = `/login?next=${encodeURIComponent(here)}`;
+        }
+        
         // Handle non-OK responses
         if (!response.ok) {
             let errorMessage = `HTTP error! status: ${response.status}`;
@@ -404,6 +410,7 @@ function initTopbar(user) {
     const avatar = document.getElementById('topbar-avatar');
     if (user.profile_image_url) {
         const img = document.createElement('img');
+        img.id = 'topbar-avatar';
         img.className = 'avatar';
         img.src = user.profile_image_url;
         img.alt = '';
@@ -412,13 +419,18 @@ function initTopbar(user) {
         avatar.textContent = (user.display_name || '?').charAt(0).toUpperCase();
     }
     
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        try {
-            await logout();
-        } finally {
-            window.location.href = '/';
-        }
-    });
+    // Pages may call this again after the user changes (e.g. a new display name)
+    const logoutButton = document.getElementById('logout-btn');
+    if (!logoutButton.dataset.bound) {
+        logoutButton.dataset.bound = 'true';
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await logout();
+            } finally {
+                window.location.href = '/';
+            }
+        });
+    }
     
     container.hidden = false;
 }

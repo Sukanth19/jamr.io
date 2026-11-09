@@ -478,3 +478,10 @@
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 }
+
+.spotify-hint {
+    margin-top: 8px;
+    padding: 0 4px;
+    color: var(--text-faint);
+    font-size: 0.85rem;
+}
