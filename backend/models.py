@@ -2,7 +2,7 @@
 
 from sqlalchemy import (
     Column, Integer, String, Text, TIMESTAMP, ForeignKey, 
-    Index, UniqueConstraint, JSON, TypeDecorator
+    Index, UniqueConstraint, JSON, TypeDecorator, CheckConstraint, text
 )
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY as PG_ARRAY
 from sqlalchemy.sql import func
@@ -55,8 +55,19 @@ class User(Base):
     favorite_genres = Column(ArrayType)
     # Top artists from Spotify at last login: [{"id", "name", "image"}, ...]
     top_artists = Column(JSONType)
+    # Site role, lowest to highest: user, mod, admin, overseer (see permissions.py)
+    role = Column(String(16), nullable=False, default="user", server_default="user")
+    # Suspended users can read but not post; None = not suspended
+    suspended_until = Column(TIMESTAMP)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+    
+    __table_args__ = (
+        CheckConstraint("role IN ('user', 'mod', 'admin', 'overseer')", name="ck_users_role"),
+        # At most one overseer
+        Index('one_overseer', 'role', unique=True,
+              postgresql_where=text("role = 'overseer'"), sqlite_where=text("role = 'overseer'")),
+    )
 
 
 class Room(Base):

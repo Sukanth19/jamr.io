@@ -377,3 +377,81 @@
         max-width: 88%;
     }
 }
+
+/* ---------- Roles and moderation ---------- */
+
+.message-header .role-badge {
+    align-self: center;
+}
+
+.message-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.message.own .message-row {
+    flex-direction: row-reverse;
+}
+
+.message-delete {
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: var(--text-faint);
+    font-size: 0.75rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity var(--transition), color var(--transition), background-color var(--transition);
+}
+
+.message:hover .message-delete,
+.message-delete:focus-visible {
+    opacity: 1;
+}
+
+.message-delete:hover {
+    color: var(--danger);
+    background: var(--danger-soft);
+}
+
+/* Touch screens have no hover: keep the button faintly visible */
+@media (hover: none) {
+    .message-delete {
+        opacity: 0.6;
+    }
+}
+
+.btn-danger {
+    color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--danger-soft);
+    color: var(--danger);
+}
+
+.jam-link-remove {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    color: var(--text-faint);
+}
+
+.jam-link-remove:hover {
+    color: var(--danger);
+}
+
+.suspended-notice {
+    margin: 0 12px;
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    background: var(--danger-soft);
+    color: #fecaca;
+    font-size: 0.85rem;
+}
+
+.active-users-list .role-badge {
+    margin-left: auto;
+}

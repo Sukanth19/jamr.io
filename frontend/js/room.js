@@ -123,6 +123,96 @@ function updateRoomHeader(room) {
     if (room.active_jam_link) {
         updateJamLinkDisplay(room.active_jam_link);
     }
+    
+    // Owners and staff who outrank the owner can delete the room
+    document.getElementById('delete-room-btn').hidden = !canManageRoom();
+    
+    updateSuspendedState();
+}
+
+/**
+ * Whether the current user may manage this room (mirrors can_manage_room)
+ * @returns {boolean}
+ */
+function canManageRoom() {
+    if (!currentUser || !currentRoom) return false;
+    if (currentRoom.owner_id === currentUser.id) return true;
+    return isStaff(currentUser) && roleLevel(currentUser.role) > roleLevel(currentRoom.owner_role);
+}
+
+/**
+ * Whether the current user may delete a message (mirrors can_delete_message)
+ * @param {number} authorId - Message author's user ID
+ * @param {string} authorRole - Message author's role
+ * @returns {boolean}
+ */
+function canDeleteMessage(authorId, authorRole) {
+    if (!currentUser || !currentRoom) return false;
+    if (authorId === currentUser.id) return true;
+    const mine = roleLevel(currentUser.role);
+    const theirs = roleLevel(authorRole);
+    if (currentRoom.owner_id === currentUser.id && mine >= theirs) return true;
+    return isStaff(currentUser) && mine > theirs;
+}
+
+/**
+ * Disable posting while the user is suspended
+ */
+function updateSuspendedState() {
+    const suspended = isSuspended(currentUser);
+    const notice = document.getElementById('suspended-notice');
+    
+    notice.hidden = !suspended;
+    if (suspended) {
+        notice.textContent = `You're suspended from posting ${formatSuspension(currentUser.suspended_until)}. You can still read along.`;
+    }
+    
+    ['message-input', 'send-message-btn', 'jam-link-input', 'update-jam-link-btn'].forEach(id => {
+        document.getElementById(id).disabled = suspended;
+    });
+}
+
+/**
+ * Delete the room after confirmation, then go back to the room list
+ */
+async function deleteRoom() {
+    if (!confirm('Delete this room and all its messages? This can\'t be undone.')) return;
+    
+    try {
+        await apiRequest(`/api/rooms/${currentRoomId}`, { method: 'DELETE' });
+        window.location.href = '/discover';
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
+ * Delete a message (the server broadcasts message_deleted to everyone)
+ * @param {number} messageId - Message ID
+ */
+async function deleteMessage(messageId) {
+    try {
+        await apiRequest(`/api/rooms/${currentRoomId}/messages/${messageId}`, { method: 'DELETE' });
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
+ * Remove a deleted message from the chat
+ * @param {number} messageId - Message ID
+ */
+function removeMessageElement(messageId) {
+    const element = document.querySelector(`.message[data-message-id="${messageId}"]`);
+    if (!element) return;
+    
+    // If this message carried the name/time header, hand it to the next one in its group
+    const next = element.nextElementSibling;
+    if (!element.classList.contains('grouped') && next && next.classList.contains('grouped')
+        && next.dataset.userId === element.dataset.userId) {
+        next.classList.remove('grouped');
+    }
+    element.remove();
 }
 
 /**
@@ -143,7 +233,7 @@ function renderMessages(messageList) {
         (a, b) => new Date(a.created_at) - new Date(b.created_at)
     );
     chronological.forEach(msg => {
-        appendMessage(msg.username, msg.content, msg.created_at, false, msg.user_id);
+        appendMessage(msg.username, msg.content, msg.created_at, false, msg.user_id, msg.id, msg.user_role);
     });
 }
 
@@ -154,8 +244,10 @@ function renderMessages(messageList) {
  * @param {string} timestamp - Message timestamp
  * @param {boolean} shouldScroll - Whether to scroll to bottom
  * @param {number} userId - Sender user ID (to mark own messages and group runs)
+ * @param {number} messageId - Message ID (for deleting)
+ * @param {string} role - Sender's site role (for the staff badge)
  */
-function appendMessage(username, content, timestamp, shouldScroll = true, userId = null) {
+function appendMessage(username, content, timestamp, shouldScroll = true, userId = null, messageId = null, role = null) {
     const chatMessages = document.getElementById('chat-messages');
     
     // Remove empty state if exists
@@ -168,6 +260,9 @@ function appendMessage(username, content, timestamp, shouldScroll = true, userId
     messageDiv.className = 'message';
     messageDiv.dataset.userId = userId;
     messageDiv.dataset.timestamp = timestamp;
+    if (messageId !== null) {
+        messageDiv.dataset.messageId = messageId;
+    }
     
     if (currentUser && userId === currentUser.id) {
         messageDiv.classList.add('own');
@@ -193,14 +288,33 @@ function appendMessage(username, content, timestamp, shouldScroll = true, userId
     timestampSpan.textContent = formatTimestamp(timestamp);
     
     messageHeader.appendChild(usernameSpan);
+    const badge = createRoleBadge(role);
+    if (badge) {
+        messageHeader.appendChild(badge);
+    }
     messageHeader.appendChild(timestampSpan);
     
     const messageContent = document.createElement('div');
     messageContent.className = 'message-content';
     messageContent.textContent = content;
     
+    // Bubble plus a delete button (shown on hover) for people allowed to delete it
+    const messageRow = document.createElement('div');
+    messageRow.className = 'message-row';
+    messageRow.appendChild(messageContent);
+    
+    if (messageId !== null && canDeleteMessage(userId, role)) {
+        const deleteButton = document.createElement('button');
+        deleteButton.className = 'message-delete';
+        deleteButton.type = 'button';
+        deleteButton.textContent = 'Delete';
+        deleteButton.setAttribute('aria-label', 'Delete message');
+        deleteButton.addEventListener('click', () => deleteMessage(messageId));
+        messageRow.appendChild(deleteButton);
+    }
+    
     messageDiv.appendChild(messageHeader);
-    messageDiv.appendChild(messageContent);
+    messageDiv.appendChild(messageRow);
     
     chatMessages.appendChild(messageDiv);
     
@@ -331,6 +445,17 @@ function updateJamLink() {
 }
 
 /**
+ * Stop sharing the room's Jam link (the server broadcasts the change)
+ */
+async function clearJamLink() {
+    try {
+        await apiRequest(`/api/rooms/${currentRoomId}/jam-link`, { method: 'DELETE' });
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+/**
  * Update Jam link display
  * @param {string} link - Spotify Jam link
  */
@@ -343,6 +468,16 @@ function updateJamLinkDisplay(link) {
                 ▶ Join the Spotify Jam
             </a>
         `;
+        
+        // Owners and staff can stop sharing it
+        if (canManageRoom()) {
+            const removeButton = document.createElement('button');
+            removeButton.type = 'button';
+            removeButton.className = 'btn-link jam-link-remove';
+            removeButton.textContent = 'Remove link';
+            removeButton.addEventListener('click', clearJamLink);
+            display.appendChild(removeButton);
+        }
     } else {
         display.innerHTML = '<p class="no-link">No Jam running. Start one in Spotify and share the link.</p>';
     }
@@ -432,6 +567,9 @@ function setupEventListeners() {
             leaveRoom();
         }
     });
+    
+    // Delete room button (only visible to the owner and staff)
+    document.getElementById('delete-room-btn').addEventListener('click', deleteRoom);
 }
 
 /**
@@ -473,7 +611,7 @@ function setupSocketListeners() {
         console.log('New message:', data);
         
         // Append message to chat
-        appendMessage(data.username, data.content, data.timestamp, true, data.user_id);
+        appendMessage(data.username, data.content, data.timestamp, true, data.user_id, data.message_id, data.user_role);
     });
     
     // Jam link updated event
@@ -484,7 +622,20 @@ function setupSocketListeners() {
         updateJamLinkDisplay(data.link);
         
         // Show system message
-        appendSystemMessage(`Spotify Jam link updated`);
+        appendSystemMessage(data.link ? `${data.updated_by} shared a Spotify Jam` : `${data.updated_by} ended the shared Jam`);
+    });
+    
+    // A message was deleted
+    socket.on('message_deleted', (data) => {
+        removeMessageElement(data.message_id);
+    });
+    
+    // The room was deleted: everyone goes back to the room list
+    socket.on('room_deleted', (data) => {
+        showToast(`${data.deleted_by} deleted this room`, 'error');
+        setTimeout(() => {
+            window.location.href = '/discover';
+        }, 2000);
     });
     
     // User count updated event
@@ -571,6 +722,11 @@ function renderActiveUsers() {
         
         li.appendChild(avatar);
         li.appendChild(name);
+        
+        const badge = createRoleBadge(user.role);
+        if (badge) {
+            li.appendChild(badge);
+        }
         
         if (currentUser && user.user_id === currentUser.id) {
             const you = document.createElement('span');

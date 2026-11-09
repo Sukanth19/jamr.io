@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control - jamr.io</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/admin.css">
+</head>
+<body>
+    <header class="topbar">
+        <div class="container topbar-inner">
+            <a href="/discover" class="brand">jamr<span>.io</span></a>
+            <div class="topbar-user" id="topbar-user" hidden>
+                <span class="avatar" id="topbar-avatar" aria-hidden="true"></span>
+                <span class="topbar-user-name" id="topbar-user-name"></span>
+                <button class="btn btn-ghost btn-sm" id="logout-btn" type="button">Log out</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="page-head">
+            <div>
+                <h1>Control</h1>
+                <p id="control-intro">Manage roles and suspensions.</p>
+            </div>
+        </section>
+
+        <div class="control-toolbar">
+            <input type="search" id="user-search" class="input" placeholder="Search people" aria-label="Search people">
+            <span id="user-total" class="user-total"></span>
+        </div>
+
+        <ul id="user-list" class="user-list" aria-live="polite">
+            <li class="loading">Loading people...</li>
+        </ul>
+    </main>
+
+    <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/admin.js"></script>
+</body>
+</html>

@@ -28,6 +28,7 @@ from http.cookies import SimpleCookie
 
 from backend.rate_limiter import RateLimiter
 from backend.serializers import utc_isoformat
+from backend.permissions import is_suspended
 
 # Load environment variables
 load_dotenv()
@@ -319,7 +320,7 @@ async def join_room(sid, data):
         ).all()
         
         active_users_list = [
-            {'user_id': u.id, 'username': u.display_name}
+            {'user_id': u.id, 'username': u.display_name, 'role': u.role}
             for u, _ in active_users
         ]
         
@@ -438,7 +439,7 @@ async def leave_room(sid, data):
         ).all()
         
         active_users_list = [
-            {'user_id': u.id, 'username': u.display_name}
+            {'user_id': u.id, 'username': u.display_name, 'role': u.role}
             for u, _ in active_users
         ]
         
@@ -535,6 +536,10 @@ async def send_message(sid, data):
         if not user:
             return {'error': 'User not found'}
         
+        # Suspended users can read but not post
+        if is_suspended(user):
+            return {'error': "You're suspended from posting right now."}
+        
         # Get room info
         room = db.query(Room).filter(Room.id == room_id).first()
         if not room:
@@ -561,6 +566,7 @@ async def send_message(sid, data):
             'message_id': message.id,
             'user_id': user_id,
             'username': user.display_name,
+            'user_role': user.role,
             'content': trimmed_content,
             'timestamp': utc_isoformat(message.created_at)
         }, room=f'room_{room_id}')
@@ -634,6 +640,10 @@ async def update_jam_link(sid, data):
         user = db.query(User).filter(User.id == user_id).first()
         if not user:
             return {'error': 'User not found'}
+        
+        # Suspended users can read but not post
+        if is_suspended(user):
+            return {'error': "You're suspended from posting right now."}
         
         # Get room info
         room = db.query(Room).filter(Room.id == room_id).first()

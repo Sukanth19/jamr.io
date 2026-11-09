@@ -1,0 +1,120 @@
+/* Control page styles */
+
+.page-head {
+    padding: 40px 0 20px;
+}
+
+.page-head h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.page-head p {
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.control-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.control-toolbar .input {
+    max-width: 360px;
+    border-radius: 999px;
+}
+
+.user-total {
+    color: var(--text-faint);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.user-list {
+    list-style: none;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+.user-list > .loading,
+.user-list > .empty-state,
+.user-list > .error-message {
+    padding: 24px;
+    border: none;
+}
+
+.user-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+}
+
+.user-row + .user-row {
+    border-top: 1px solid var(--border);
+}
+
+.user-who {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.user-who .avatar {
+    width: 36px;
+    height: 36px;
+}
+
+.user-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.user-meta {
+    color: var(--text-faint);
+    font-size: 0.85rem;
+}
+
+.user-meta.suspended {
+    color: var(--danger);
+}
+
+.user-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.select {
+    width: auto;
+    padding: 6px 30px 6px 12px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a1a1aa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+}
+
+@media (max-width: 640px) {
+    .user-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .user-actions {
+        flex-wrap: wrap;
+    }
+}

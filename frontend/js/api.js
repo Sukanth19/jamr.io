@@ -40,7 +40,10 @@ async function apiRequest(endpoint, options = {}) {
             throw new Error(errorMessage);
         }
 
-        // Parse and return JSON response
+        // Parse and return JSON response (204 No Content has no body)
+        if (response.status === 204) {
+            return null;
+        }
         return await response.json();
     } catch (error) {
         console.error('API request error:', error);
@@ -322,6 +325,61 @@ function debounce(func, wait) {
     };
 }
 
+// Site roles, lowest to highest (mirrors backend/permissions.py)
+const ROLE_LEVEL = { user: 0, mod: 1, admin: 2, overseer: 3 };
+const ROLE_LABEL = { mod: 'Mod', admin: 'Admin', overseer: 'Overseer' };
+
+/**
+ * Numeric rank of a role (unknown or missing roles count as user)
+ * @param {string} role - Role name
+ * @returns {number} - Rank
+ */
+function roleLevel(role) {
+    return ROLE_LEVEL[role] ?? 0;
+}
+
+/**
+ * Whether a user is staff (mod and up)
+ * @param {Object} user - User from getCurrentUser()
+ * @returns {boolean}
+ */
+function isStaff(user) {
+    return Boolean(user) && roleLevel(user.role) >= ROLE_LEVEL.mod;
+}
+
+/**
+ * Whether a user is currently suspended from posting
+ * @param {Object} user - User from getCurrentUser()
+ * @returns {boolean}
+ */
+function isSuspended(user) {
+    return Boolean(user && user.suspended_until) && new Date(user.suspended_until) > new Date();
+}
+
+/**
+ * Describe when a suspension ends
+ * @param {string} until - ISO timestamp
+ * @returns {string} - e.g. "until Nov 10, 14:00" or "until staff lift it"
+ */
+function formatSuspension(until) {
+    const date = new Date(until);
+    if (date.getFullYear() >= 9999) return 'until staff lift it';
+    return `until ${date.toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`;
+}
+
+/**
+ * Small badge for staff roles; null for regular users
+ * @param {string} role - Role name
+ * @returns {HTMLElement|null}
+ */
+function createRoleBadge(role) {
+    if (!ROLE_LABEL[role]) return null;
+    const badge = document.createElement('span');
+    badge.className = `role-badge role-${role}`;
+    badge.textContent = ROLE_LABEL[role];
+    return badge;
+}
+
 /**
  * Fill in the top bar with the logged-in user and wire up the logout button
  * @param {Object} user - User from getCurrentUser()
@@ -331,6 +389,16 @@ function initTopbar(user) {
     if (!container || !user) return;
     
     document.getElementById('topbar-user-name').textContent = user.display_name;
+    
+    // Staff get a link to the control panel
+    if (isStaff(user) && !document.getElementById('topbar-control')) {
+        const link = document.createElement('a');
+        link.id = 'topbar-control';
+        link.href = '/admin';
+        link.className = 'btn btn-ghost btn-sm';
+        link.textContent = 'Control';
+        container.prepend(link);
+    }
     
     // Show the Spotify profile picture, or the first letter of the name
     const avatar = document.getElementById('topbar-avatar');

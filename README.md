@@ -15,6 +15,7 @@ Music chat rooms for people with similar taste. Log in with Spotify, pick the ge
 - **Shared artists**: each room shows which of your Spotify top artists its members, chatters and owner also have
 - **Real-time chat** over Socket.IO: messages, who's here now, join/leave notices
 - **Listen together**: share a Spotify Jam link with the room
+- **Roles and moderation**: mods, admins and one overseer; a Control page for roles and suspensions (see [Roles](#roles))
 - Chat rate limiting (10 messages per 10 seconds per user)
 
 > **Why pick genres manually?** Spotify no longer gives development-mode apps
@@ -87,6 +88,30 @@ This checks the database connection, runs migrations and starts the server with 
 
 To try live chat, open the same room in a private window logged in as a second Spotify account.
 
+## Roles
+
+| Role | Can |
+| --- | --- |
+| Visitor (logged out) | See the landing page and featured rooms |
+| User | Create rooms and chat; delete **their own** messages; edit and delete **their own** rooms |
+| Room owner | Whoever created a room: also delete any message in it and remove its Jam link (unless the author outranks them) |
+| Moderator | Delete messages and rooms of anyone ranked below them; suspend people below them |
+| Admin | Moderator powers, plus make people moderators and lift suspensions |
+| Overseer | Everything, including appointing and removing admins |
+
+Everyone starts as **User**. Staff manage roles and suspensions on the **Control** page (`/admin`). Suspended people can still log in and read, but can't chat, create rooms or share Jam links.
+
+### Make yourself the Overseer (once)
+
+Log in on the website once, then:
+
+```bash
+python create_overseer.py --list           # find your account
+python create_overseer.py <display-name>    # or your Spotify user ID
+```
+
+There's only ever one Overseer, and the website can't create or assign one. Running it for someone else makes them the Overseer and the previous one an admin.
+
 ## Tests
 
 ```bash
@@ -101,7 +126,9 @@ Tests use a temporary SQLite database, so they don't need PostgreSQL or Spotify.
 backend/
   main.py                  FastAPI app, page routes, middleware, startup
   auth.py                  Spotify OAuth, sessions, /auth/me, favorite genres
-  rooms.py                 Room REST API, recommendations, shared artists
+  rooms.py                 Room REST API, recommendations, shared artists, moderation
+  admin.py                 Control panel API: roles and suspensions
+  permissions.py           Roles and who may do what
   socketio_server.py       Real-time events: join/leave, messages, Jam links
   recommendation_engine.py Genre vectors, genre match score, shared artists
   models.py                SQLAlchemy models
@@ -128,8 +155,14 @@ tests/                     pytest suite
 | GET | `/api/rooms/{id}` | ✓ | Room details |
 | GET | `/api/rooms/{id}/messages` | ✓ | Latest 50 messages |
 | PUT | `/api/rooms/{id}/jam-link` | ✓ | Set the room's Spotify Jam link |
+| DELETE | `/api/rooms/{id}/jam-link` | owner/staff | Remove the room's Jam link |
+| DELETE | `/api/rooms/{id}` | owner/staff | Delete a room and its messages |
+| DELETE | `/api/rooms/{id}/messages/{message_id}` | author/owner/staff | Delete a message |
+| GET | `/api/admin/users` | mod+ | Everyone, with what the viewer may do to them |
+| PUT | `/api/admin/users/{id}/role` | admin+ | Change someone's role (below your own) |
+| POST / DELETE | `/api/admin/users/{id}/suspend` | mod+ | Suspend (`{"hours": n}`, or no hours for "until lifted") / lift |
 
-Socket.IO (at `/socket.io/`, authenticated by the session cookie) handles `join_room`, `leave_room`, `send_message` and `update_jam_link`. It broadcasts `new_message`, `user_joined`, `user_left`, `user_count_updated`, `active_users_updated` and `jam_link_updated`.
+Socket.IO (at `/socket.io/`, authenticated by the session cookie) handles `join_room`, `leave_room`, `send_message` and `update_jam_link`. It broadcasts `new_message`, `message_deleted`, `room_deleted`, `user_joined`, `user_left`, `user_count_updated`, `active_users_updated` and `jam_link_updated`.
 
 ## Known limitations
 

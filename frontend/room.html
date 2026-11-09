@@ -35,6 +35,7 @@
             </div>
             <div class="room-actions">
                 <span class="live-count"><span id="user-count" class="user-count-badge">0</span> here now</span>
+                <button id="delete-room-btn" class="btn btn-ghost btn-sm btn-danger" hidden>Delete room</button>
                 <button id="leave-room-btn" class="btn btn-secondary btn-sm">Leave room</button>
             </div>
         </header>
@@ -47,6 +48,8 @@
                         <div class="loading">Loading messages...</div>
                     </div>
 
+                    <p id="suspended-notice" class="suspended-notice" role="status" hidden></p>
+                    
                     <!-- Message Input -->
                     <div class="message-input-container">
                         <textarea

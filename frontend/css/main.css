@@ -50,6 +50,11 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
+/* The hidden attribute must win over component display rules (e.g. .btn) */
+[hidden] {
+    display: none !important;
+}
+
 /* Form controls don't inherit fonts by default */
 button,
 input,
@@ -110,10 +115,6 @@ a {
     align-items: center;
     gap: 10px;
     min-width: 0;
-}
-
-.topbar-user[hidden] {
-    display: none;
 }
 
 .topbar-user-name {
@@ -423,4 +424,33 @@ footer {
     .topbar-user-name {
         display: none;
     }
+}
+
+/* ---------- Role badges ---------- */
+
+.role-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1.5;
+}
+
+.role-mod {
+    background: rgba(56, 189, 248, 0.15);
+    color: #7dd3fc;
+}
+
+.role-admin {
+    background: rgba(245, 165, 36, 0.15);
+    color: #fcd34d;
+}
+
+.role-overseer {
+    background: rgba(192, 132, 252, 0.18);
+    color: #d8b4fe;
 }

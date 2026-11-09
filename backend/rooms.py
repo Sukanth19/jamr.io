@@ -11,6 +11,9 @@ from backend.auth import get_current_user
 from backend.recommendation_engine import get_recommended_rooms, generate_room_taste_vector, find_shared_artists
 from backend.validators import validate_room_name, validate_room_description, validate_spotify_jam_link, normalize_spotify_jam_link
 from backend.serializers import utc_isoformat
+from backend.permissions import (
+    require_not_suspended, can_manage_room, can_delete_message, forbidden,
+)
 
 # Create router for room endpoints
 router = APIRouter(prefix="/api/rooms", tags=["Rooms"])
@@ -330,6 +333,8 @@ async def create_room(
             }
         )
     
+    require_not_suspended(current_user)
+    
     # Trim whitespace from room name
     trimmed_name = room_data.name.strip()
     
@@ -430,6 +435,7 @@ async def get_room(
         "genre_tags": room.genre_tags,
         "taste_vector": room.taste_vector,
         "owner_id": room.owner_id,
+        "owner_role": _role_of(db, room.owner_id),
         "active_jam_link": room.active_jam_link,
         "user_count": room.user_count,
         "created_at": room.created_at.isoformat() if room.created_at else None,
@@ -678,6 +684,8 @@ async def update_jam_link(
             }
         )
     
+    require_not_suspended(current_user)
+    
     # Validate Spotify Jam link format
     trimmed_link = normalize_spotify_jam_link(jam_link_data.link)
     is_valid, error_message = validate_spotify_jam_link(trimmed_link)
@@ -779,16 +787,19 @@ async def get_messages(
     for message in messages:
         # Fetch user information if user_id is not null
         username = None
+        user_role = None
         if message.user_id:
             user = db.query(User).filter(User.id == message.user_id).first()
             if user:
                 username = user.display_name
+                user_role = user.role
         
         messages_data.append({
             "id": message.id,
             "room_id": message.room_id,
             "user_id": message.user_id,
             "username": username,
+            "user_role": user_role,
             "content": message.content,
             "created_at": utc_isoformat(message.created_at)
         })
@@ -798,3 +809,98 @@ async def get_messages(
         "total": len(messages_data),
         "room_id": room_id
     }
+
+
+def _get_room_or_404(db: Session, room_id: int) -> Room:
+    room = db.query(Room).filter(Room.id == room_id).first()
+    if not room:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"code": "NOT_FOUND", "message": f"Room with ID {room_id} not found"}}
+        )
+    return room
+
+
+def _role_of(db: Session, user_id: Optional[int]) -> Optional[str]:
+    if user_id is None:
+        return None
+    row = db.query(User.role).filter(User.id == user_id).first()
+    return row[0] if row else None
+
+
+@router.delete("/{room_id}", status_code=204)
+async def delete_room(
+    room_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a room with its messages. Allowed for the room's owner, and for
+    staff who outrank the owner. Everyone in the room is told it's gone.
+    """
+    from backend.models import Message, RoomMembership
+    from backend.socketio_server import sio
+    
+    room = _get_room_or_404(db, room_id)
+    if not can_manage_room(current_user, room, _role_of(db, room.owner_id)):
+        raise forbidden("Only the room's owner or staff can delete this room.")
+    
+    # Delete children explicitly (SQLite in tests doesn't enforce ON DELETE CASCADE)
+    db.query(Message).filter(Message.room_id == room_id).delete()
+    db.query(RoomMembership).filter(RoomMembership.room_id == room_id).delete()
+    db.delete(room)
+    db.commit()
+    
+    await sio.emit('room_deleted', {'room_id': room_id, 'deleted_by': current_user.display_name},
+                   room=f'room_{room_id}')
+
+
+@router.delete("/{room_id}/messages/{message_id}", status_code=204)
+async def delete_message(
+    room_id: int,
+    message_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Delete a message. Allowed for its author, the room's owner, and staff,
+    unless the author outranks them. Removed live for everyone in the room.
+    """
+    from backend.models import Message
+    from backend.socketio_server import sio
+    
+    room = _get_room_or_404(db, room_id)
+    message = db.query(Message).filter(Message.id == message_id, Message.room_id == room_id).first()
+    if not message:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": {"code": "NOT_FOUND", "message": "That message is already gone."}}
+        )
+    
+    if not can_delete_message(current_user, message.user_id, _role_of(db, message.user_id), room):
+        raise forbidden("You can't delete this message.")
+    
+    db.delete(message)
+    db.commit()
+    
+    await sio.emit('message_deleted', {'room_id': room_id, 'message_id': message_id}, room=f'room_{room_id}')
+
+
+@router.delete("/{room_id}/jam-link", status_code=204)
+async def clear_jam_link(
+    room_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Stop sharing the room's Jam link. Allowed for the room's owner and staff who outrank them."""
+    from backend.socketio_server import sio
+    
+    room = _get_room_or_404(db, room_id)
+    if not can_manage_room(current_user, room, _role_of(db, room.owner_id)):
+        raise forbidden("Only the room's owner or staff can remove the Jam link.")
+    
+    room.active_jam_link = None
+    db.commit()
+    
+    await sio.emit('jam_link_updated', {'room_id': room_id, 'link': None, 'updated_by': current_user.display_name},
+                   room=f'room_{room_id}')
