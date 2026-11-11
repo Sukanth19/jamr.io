@@ -182,7 +182,7 @@
 }
 
 .room-card:hover {
-    box-shadow: 4px 4px 0 var(--ink);
+    box-shadow: var(--shadow-lift);
     transform: translate(-2px, -2px);
 }
 
@@ -377,7 +377,7 @@
     background: var(--surface);
     border: 1.5px solid var(--ink);
     border-radius: var(--radius-lg);
-    box-shadow: 6px 6px 0 var(--ink);
+    box-shadow: var(--shadow-card);
     animation: modalIn 0.18s ease-out;
 }
 

@@ -13,7 +13,7 @@
     background: var(--surface);
     border: 1.5px solid var(--ink);
     border-radius: var(--radius-lg);
-    box-shadow: 6px 6px 0 var(--ink);
+    box-shadow: var(--shadow-card);
 }
 
 .auth-tabs {

@@ -55,7 +55,11 @@
     --radius: 10px;
     --radius-lg: 14px;
     --shadow: 0 1px 2px rgba(35, 29, 23, 0.06), 0 8px 24px rgba(35, 29, 23, 0.08);
-    --shadow-press: 3px 3px 0 var(--ink);
+    /* Hard offset "sticker" shadows. Always dark, even when --ink flips to cream */
+    --shadow-ink: #231d17;
+    --shadow-press: 3px 3px 0 var(--shadow-ink);
+    --shadow-lift: 4px 4px 0 var(--shadow-ink);
+    --shadow-card: 6px 6px 0 var(--shadow-ink);
     --transition: 150ms ease;
 
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, Cantarell, sans-serif;
@@ -106,7 +110,7 @@
     --role-admin-ink: #f2d48a;
 
     --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
-    --shadow-press: 3px 3px 0 #0d0b09;
+    --shadow-ink: #0d0b09;
     --topbar-bg: rgba(26, 22, 18, 0.9);
     --overlay: rgba(0, 0, 0, 0.6);
     --grain-opacity: 0.12;

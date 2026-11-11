@@ -297,6 +297,25 @@ def test_dark_theme_overrides_every_colour_token():
     assert not missing, f"colour tokens with no dark value: {missing}"
 
 
+def test_offset_shadows_use_tokens():
+    """Hard offset shadows must use the --shadow-* tokens so they stay dark in
+    dark mode (var(--ink) turns cream there)."""
+    tokens = root_tokens()
+    for name in ("--shadow-press", "--shadow-lift", "--shadow-card"):
+        assert "var(--shadow-ink)" in tokens[name], f"{name} must use --shadow-ink"
+    for path in CSS_DIR.glob("*.css"):
+        css = read(path)
+        assert not re.search(r"\d+px\s+\d+px\s+0\s+var\(--ink\)", css), f"ink offset shadow in {path.name}"
+        for rule in re.findall(r"box-shadow:\s*([^;]+);", css):
+            if re.match(r"\d+px \d+px 0 ", rule):
+                pytest.fail(f"raw offset shadow '{rule}' in {path.name}, use a --shadow-* token")
+
+
+def test_shadow_ink_is_dark_in_both_themes():
+    for theme in THEMES:
+        assert contrast(hex_token("--shadow-ink", theme), "#000000") < 1.6, f"--shadow-ink should be near black in {theme}"
+
+
 def test_page_css_has_no_hard_coded_colours():
     """Page stylesheets must use tokens so they follow the theme."""
     for name in ("landing.css", "discover.css", "room.css", "auth.css", "admin.css"):
