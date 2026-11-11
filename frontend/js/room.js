@@ -462,6 +462,10 @@ async function clearJamLink() {
 function updateJamLinkDisplay(link) {
     const display = document.getElementById('jam-link-display');
     
+    // Spin the record in the panel while a Jam is running
+    const panel = display.closest('.jam-link-section');
+    if (panel) panel.classList.toggle('jam-live', Boolean(link));
+    
     if (link) {
         display.innerHTML = `
             <a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" title="${escapeHtml(link)}">

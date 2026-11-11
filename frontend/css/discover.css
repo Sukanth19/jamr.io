@@ -11,14 +11,16 @@
 }
 
 .page-head h1 {
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    font-size: 2.6rem;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
 }
 
 .page-head p {
+    font-family: var(--font-display);
+    font-style: italic;
     color: var(--text-muted);
+    font-size: 1.1rem;
     margin-top: 4px;
 }
 
@@ -35,14 +37,18 @@
     gap: 8px;
     padding: 12px 16px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border-strong);
     border-radius: var(--radius);
     font-size: 0.9rem;
 }
 
 .taste-label {
+    font-family: var(--font-mono);
     color: var(--text-faint);
-    font-weight: 600;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     margin-right: 4px;
 }
 
@@ -119,7 +125,7 @@
     gap: 6px;
     padding: 7px 14px;
     border-radius: 999px;
-    border: 1px solid var(--border-strong);
+    border: 1.5px solid var(--border-strong);
     background: var(--surface);
     color: var(--text-muted);
     font-size: 0.875rem;
@@ -129,15 +135,16 @@
 
 .genre-checkbox:hover span,
 .genre-tag-checkbox:hover span {
-    border-color: var(--text-faint);
+    border-color: var(--ink);
     color: var(--text);
 }
 
+/* Selected filter: solid ink, like a pressed button on a deck */
 .genre-checkbox input:checked + span,
 .genre-tag-checkbox input:checked + span {
-    background: var(--accent-soft);
-    border-color: var(--accent);
-    color: var(--accent);
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--bg);
 }
 
 .genre-checkbox input:checked + span::before,
@@ -148,7 +155,7 @@
 
 .genre-checkbox input:focus-visible + span,
 .genre-tag-checkbox input:focus-visible + span {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
 }
 
@@ -160,57 +167,87 @@
     gap: 16px;
 }
 
+/* Record sleeve: paper card with an ink outline that lifts on hover */
 .room-card {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 12px;
     padding: 20px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--ink);
     border-radius: var(--radius-lg);
     cursor: pointer;
-    transition: border-color var(--transition), background-color var(--transition), transform var(--transition);
+    transition: box-shadow var(--transition), transform var(--transition);
 }
 
 .room-card:hover {
-    border-color: var(--border-strong);
-    background: var(--surface-2);
-    transform: translateY(-2px);
+    box-shadow: 4px 4px 0 var(--ink);
+    transform: translate(-2px, -2px);
+}
+
+.room-card:hover .vinyl {
+    animation: vinyl-spin 2.4s linear infinite;
 }
 
 .room-card:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
 }
 
 .room-card-header {
     display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    align-items: center;
     gap: 12px;
 }
 
+.room-card-header .vinyl {
+    --size: 44px;
+}
+
 .room-card-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    line-height: 1.2;
     overflow-wrap: anywhere;
 }
 
+/* Match %: a round price-sticker, slightly crooked */
 .match-pill {
     flex-shrink: 0;
-    padding: 3px 10px;
-    border-radius: 999px;
-    background: var(--surface-3);
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--surface-2);
+    border: 1.5px dashed var(--border-strong);
     color: var(--text-muted);
-    font-size: 0.8rem;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
     font-weight: 700;
+    line-height: 1;
     font-variant-numeric: tabular-nums;
+    transform: rotate(-8deg);
+}
+
+.match-pill small {
+    font-family: var(--font-mono);
+    font-size: 0.55rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 3px;
 }
 
 .match-pill.high {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--mustard);
+    border: 1.5px solid var(--ink);
+    color: var(--mustard-ink);
 }
 
 .room-card-description {
@@ -234,16 +271,19 @@
 .room-tag {
     padding: 3px 10px;
     border-radius: 999px;
-    background: var(--surface-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     color: var(--text-muted);
     font-size: 0.8rem;
     font-weight: 500;
     text-transform: capitalize;
 }
 
+/* Genres you like: olive, same as your taste chips */
 .room-tag.matched {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--olive-soft);
+    border-color: var(--olive-border);
+    color: var(--olive-ink);
 }
 
 .room-shared {
@@ -262,15 +302,17 @@
     align-items: center;
     gap: 8px;
     padding-top: 12px;
-    border-top: 1px solid var(--border);
+    border-top: 1px dashed var(--border-strong);
 }
 
 .room-user-count {
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    font-family: var(--font-mono);
     color: var(--text-faint);
-    font-size: 0.85rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
 }
 
 .room-user-count::before {
@@ -286,23 +328,27 @@
 }
 
 .room-user-count.live::before {
-    background: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-soft);
+    background: var(--olive);
+    box-shadow: 0 0 0 3px var(--olive-soft);
 }
 
 .badge {
     display: inline-block;
     padding: 2px 8px;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.03em;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
+/* Rubber-stamp look */
 .badge-recommended {
-    background: var(--accent);
-    color: var(--accent-text);
+    background: transparent;
+    border: 1.5px solid var(--accent);
+    color: var(--accent);
+    transform: rotate(-2deg);
 }
 
 /* ---------- Modals ---------- */
@@ -315,8 +361,8 @@
     align-items: center;
     justify-content: center;
     padding: 16px;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(4px);
+    background: var(--overlay);
+    backdrop-filter: blur(3px);
 }
 
 .modal.active {
@@ -329,9 +375,9 @@
     max-height: calc(100vh - 32px);
     overflow-y: auto;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--ink);
     border-radius: var(--radius-lg);
-    box-shadow: var(--shadow);
+    box-shadow: 6px 6px 0 var(--ink);
     animation: modalIn 0.18s ease-out;
 }
 
@@ -348,8 +394,7 @@
 }
 
 .modal-header h2 {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 1.5rem;
 }
 
 .modal-close {
@@ -424,9 +469,9 @@
     margin-bottom: 16px;
     padding: 10px 14px;
     background: var(--danger-soft);
-    border: 1px solid rgba(240, 68, 68, 0.35);
+    border: 1px solid var(--danger-border);
     border-radius: var(--radius-sm);
-    color: #fecaca;
+    color: var(--danger-ink);
     font-size: 0.9rem;
 }
 

@@ -8,6 +8,16 @@ Music chat rooms for people with similar taste. Sign up, pick the genres you're 
 | --- | --- |
 | ![Landing page](docs/screenshots/landing.png) | ![Room page](docs/screenshots/room.png) |
 
+### Dark mode
+
+Follows your system setting, or pick one with the moon/sun button in the top bar (remembered per browser).
+
+![Discover page in dark mode](docs/screenshots/discover-dark.png)
+
+| Landing | Room |
+| --- | --- |
+| ![Landing page in dark mode](docs/screenshots/landing-dark.png) | ![Room page in dark mode](docs/screenshots/room-dark.png) |
+
 ## Features
 
 - **Accounts**: sign up with a username and password (scrypt-hashed), or log in with Spotify; sessions in HTTP-only cookies

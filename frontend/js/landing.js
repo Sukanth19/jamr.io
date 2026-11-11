@@ -74,6 +74,10 @@ async function loadFeaturedRooms() {
         document.getElementById('active-users').textContent = data.stats.active_users;
         document.getElementById('active-rooms').textContent = data.stats.rooms;
 
+        // Only show the counters once someone is around: "0 active users" puts people off
+        const stats = document.querySelector('.statistics');
+        if (stats) stats.hidden = !(data.stats.active_users > 0);
+
         container.innerHTML = '';
 
         if (data.rooms.length === 0) {

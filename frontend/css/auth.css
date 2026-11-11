@@ -9,10 +9,11 @@
 .auth-card {
     width: 100%;
     max-width: 420px;
-    padding: 28px;
+    padding: 32px 28px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--ink);
     border-radius: var(--radius-lg);
+    box-shadow: 6px 6px 0 var(--ink);
 }
 
 .auth-tabs {
@@ -22,6 +23,7 @@
     padding: 4px;
     margin-bottom: 24px;
     background: var(--surface-2);
+    border: 1px solid var(--border);
     border-radius: 999px;
 }
 
@@ -36,17 +38,18 @@
 }
 
 .auth-tab[aria-selected="true"] {
-    background: var(--surface-3);
-    color: var(--text);
+    background: var(--ink);
+    color: var(--bg);
 }
 
 .auth-form h1 {
-    font-size: 1.5rem;
-    font-weight: 800;
+    font-size: 2rem;
     letter-spacing: -0.02em;
 }
 
 .auth-subtitle {
+    font-family: var(--font-display);
+    font-style: italic;
     color: var(--text-muted);
     margin: 4px 0 20px;
 }
@@ -78,9 +81,9 @@
     margin-bottom: 16px;
     padding: 10px 14px;
     background: var(--danger-soft);
-    border: 1px solid rgba(240, 68, 68, 0.35);
+    border: 1px solid var(--danger-border);
     border-radius: var(--radius-sm);
-    color: #fecaca;
+    color: var(--danger-ink);
     font-size: 0.9rem;
 }
 
@@ -91,10 +94,10 @@
 .form-success {
     margin-bottom: 16px;
     padding: 10px 14px;
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-border);
+    background: var(--olive-soft);
+    border: 1px solid var(--olive-border);
     border-radius: var(--radius-sm);
-    color: var(--accent);
+    color: var(--olive-ink);
     font-size: 0.9rem;
 }
 
@@ -108,15 +111,18 @@
     gap: 12px;
     margin: 20px 0;
     color: var(--text-faint);
-    font-size: 0.85rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .auth-divider::before,
 .auth-divider::after {
     content: '';
     flex: 1;
-    height: 1px;
-    background: var(--border);
+    height: 0;
+    border-top: 1px dashed var(--border-strong);
 }
 
 .auth-spotify {
@@ -139,9 +145,8 @@
 }
 
 .account-page > h1 {
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-size: 2.6rem;
+    letter-spacing: -0.025em;
     margin-bottom: 24px;
 }
 
@@ -149,13 +154,12 @@
     padding: 22px;
     margin-bottom: 16px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border-strong);
     border-radius: var(--radius-lg);
 }
 
 .account-section h2 {
-    font-size: 1.05rem;
-    font-weight: 700;
+    font-size: 1.35rem;
     margin-bottom: 4px;
 }
 
@@ -178,5 +182,5 @@
 }
 
 .spotify-status strong {
-    color: var(--accent);
+    color: var(--olive-ink);
 }

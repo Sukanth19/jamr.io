@@ -6,24 +6,32 @@
 }
 
 .hero-eyebrow {
-    display: inline-block;
-    margin-bottom: 20px;
-    padding: 4px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    padding: 5px 14px 5px 6px;
     border-radius: 999px;
-    background: var(--accent-soft);
-    border: 1px solid var(--accent-border);
-    color: var(--accent);
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.02em;
+    background: var(--surface);
+    border: 1.5px solid var(--ink);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.hero-eyebrow .vinyl {
+    --size: 22px;
 }
 
 .hero h1 {
-    font-size: clamp(2.25rem, 6vw, 3.75rem);
-    font-weight: 800;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    margin-bottom: 20px;
+    font-size: clamp(2.5rem, 7vw, 4.5rem);
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.05;
+    margin-bottom: 22px;
 }
 
 .hero p {
@@ -44,7 +52,7 @@
 .statistics {
     display: flex;
     justify-content: center;
-    gap: 48px;
+    gap: 40px;
     margin-top: 56px;
 }
 
@@ -53,15 +61,18 @@
 }
 
 .stat-number {
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
+    font-family: var(--font-display);
+    font-size: 2.25rem;
+    font-weight: 600;
     font-variant-numeric: tabular-nums;
 }
 
 .stat-label {
+    font-family: var(--font-mono);
     color: var(--text-faint);
-    font-size: 0.85rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 /* How it works */
@@ -72,9 +83,7 @@
 
 .how-it-works h2,
 .featured-rooms h2 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
+    font-size: 1.9rem;
     margin-bottom: 20px;
 }
 
@@ -88,26 +97,26 @@
 .step {
     padding: 24px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--ink);
     border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-press);
 }
 
 .step-number {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    margin-bottom: 14px;
-    border-radius: 50%;
-    background: var(--accent-soft);
+    margin-bottom: 12px;
+    font-family: var(--font-mono);
     color: var(--accent);
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-weight: 500;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
 }
 
 .step h3 {
-    font-size: 1.05rem;
+    font-size: 1.3rem;
     margin-bottom: 6px;
 }
 
@@ -129,12 +138,12 @@
     gap: 10px;
     padding: 20px;
     background: var(--surface);
-    border: 1px solid var(--border);
+    border: 1.5px solid var(--border-strong);
     border-radius: var(--radius-lg);
 }
 
 .room-card h3 {
-    font-size: 1.05rem;
+    font-size: 1.25rem;
 }
 
 .room-card p {
@@ -152,7 +161,8 @@
 .room-tag {
     padding: 3px 10px;
     border-radius: 999px;
-    background: var(--surface-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     color: var(--text-muted);
     font-size: 0.8rem;
     text-transform: capitalize;
@@ -160,12 +170,14 @@
 
 .room-footer {
     padding-top: 10px;
-    border-top: 1px solid var(--border);
+    border-top: 1px dashed var(--border-strong);
 }
 
 .room-user-count {
+    font-family: var(--font-mono);
     color: var(--text-faint);
-    font-size: 0.85rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
 }
 
 @media (max-width: 760px) {

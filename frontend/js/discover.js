@@ -291,8 +291,9 @@ function createRoomCard(room) {
     
     card.innerHTML = `
         <div class="room-card-header">
+            <span class="vinyl" aria-hidden="true"></span>
             <h3 class="room-card-title">${escapeHtml(room.name)}</h3>
-            ${hasPickedGenres ? `<span class="match-pill${isHighlyRecommended ? ' high' : ''}">${matchPercent}% match</span>` : ''}
+            ${hasPickedGenres ? `<span class="match-pill${isHighlyRecommended ? ' high' : ''}">${matchPercent}%<small> match</small></span>` : ''}
         </div>
         <p class="room-card-description${room.description ? '' : ' empty'}">${escapeHtml(room.description || 'No description yet')}</p>
         <div class="room-card-tags">${tagsHtml}</div>

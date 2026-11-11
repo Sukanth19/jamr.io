@@ -1,39 +1,119 @@
-/* Global styles for jamr.io: design tokens and shared components */
+/* Global styles for jamr.io: design tokens and shared components
+   Theme: "Vinyl" - warm cream paper, charcoal ink, burnt-orange accents */
 
 :root {
-    /* Surfaces */
-    --bg: #0d0e10;
-    --surface: #16171a;
-    --surface-2: #1e1f23;
-    --surface-3: #27282d;
-    --border: #2a2b31;
-    --border-strong: #3a3b42;
+    /* Surfaces: cream paper */
+    --bg: #f4ede1;
+    --surface: #fbf7ef;
+    --surface-2: #efe5d3;
+    --surface-3: #e6d9c2;
+    --border: #dccfb8;
+    --border-strong: #b9a98d;
 
-    /* Text */
-    --text: #f4f4f5;
-    --text-muted: #a1a1aa;
-    --text-faint: #71717a;
+    /* Ink */
+    --text: #231d17;
+    --text-muted: #5c5144;
+    --text-faint: #6e6253;
 
-    /* Brand */
-    --accent: #1db954;
-    --accent-hover: #1ed760;
-    --accent-text: #04140a;
-    --accent-soft: rgba(29, 185, 84, 0.12);
-    --accent-border: rgba(29, 185, 84, 0.35);
+    /* Brand: burnt orange, with mustard and olive as record-label secondaries */
+    --accent: #ad4318;
+    --accent-hover: #8f3712;
+    --accent-text: #ffffff;
+    --accent-soft: #f6dccb;
+    --accent-border: #e3a98a;
+    --mustard: #f2c14e;
+    --mustard-ink: #3a2a06;
+    --olive: #4f6b2a;
+    --olive-soft: #e3e8cf;
+    --olive-ink: #3f5621;
+    --ink: #231d17;
+
+    --olive-border: #c4cfa3;
 
     /* Status */
-    --danger: #f04444;
-    --danger-soft: rgba(240, 68, 68, 0.12);
-    --warning: #f5a524;
+    --danger: #a3202c;
+    --danger-soft: #f6d9d6;
+    --danger-border: #e3a7a2;
+    --danger-ink: #7a1720;
+    --warning: #8a5a00;
+
+    /* Role badges */
+    --role-mod-bg: #dde8ef;
+    --role-mod-ink: #1f4e6b;
+    --role-admin-bg: #f7e6bd;
+    --role-admin-ink: #6b4a00;
+
+    /* Chrome */
+    --topbar-bg: rgba(244, 237, 225, 0.92);
+    --overlay: rgba(35, 29, 23, 0.45);
+    --grain-opacity: 0.35;
+    --vinyl-rim: rgba(0, 0, 0, 0.4);
+    --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23231d17'/%3E%3C/svg%3E");
 
     /* Shape and motion */
-    --radius-sm: 8px;
-    --radius: 12px;
-    --radius-lg: 16px;
-    --shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+    --radius-sm: 6px;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --shadow: 0 1px 2px rgba(35, 29, 23, 0.06), 0 8px 24px rgba(35, 29, 23, 0.08);
+    --shadow-press: 3px 3px 0 var(--ink);
     --transition: 150ms ease;
 
     --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, Cantarell, sans-serif;
+    --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --font-mono: 'DM Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+    color-scheme: light;
+}
+
+/* Dark mode: the record store after hours. Espresso brown, cream ink,
+   a brighter orange. theme.js sets data-theme (from the toggle or the
+   system setting) before the page paints. */
+:root[data-theme="dark"] {
+    --bg: #1a1612;
+    --surface: #231e19;
+    --surface-2: #2d2620;
+    --surface-3: #3a3129;
+    --border: #3d342b;
+    --border-strong: #5e5243;
+
+    --text: #f1e8da;
+    --text-muted: #c9bda9;
+    --text-faint: #a8998a;
+
+    --accent: #e8804f;
+    --accent-hover: #f59a6c;
+    --accent-text: #1a1612;
+    --accent-soft: #4a2a1b;
+    --accent-border: #8a4a2c;
+    --mustard: #e2b13f;
+    --mustard-ink: #2a1e04;
+    --olive: #9fbb62;
+    --olive-soft: #2f3a1f;
+    --olive-ink: #c7d99a;
+    --olive-border: #4c5c32;
+    /* "Ink" flips to cream: outlines, own bubbles and toasts become light */
+    --ink: #efe4d2;
+
+    --danger: #ff8f86;
+    --danger-soft: #3d1c1a;
+    --danger-border: #7a3530;
+    --danger-ink: #ffc2bc;
+    --warning: #f2c46b;
+
+    --role-mod-bg: #1d3442;
+    --role-mod-ink: #a9d4ee;
+    --role-admin-bg: #3b2f12;
+    --role-admin-ink: #f2d48a;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --shadow-press: 3px 3px 0 #0d0b09;
+    --topbar-bg: rgba(26, 22, 18, 0.9);
+    --overlay: rgba(0, 0, 0, 0.6);
+    --grain-opacity: 0.12;
+    --vinyl-rim: rgba(239, 228, 210, 0.18);
+    --select-arrow: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23efe4d2'/%3E%3C/svg%3E");
+
+    color-scheme: dark;
 }
 
 * {
@@ -46,8 +126,33 @@ body {
     font-family: var(--font);
     background-color: var(--bg);
     color: var(--text);
-    line-height: 1.5;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
+}
+
+/* Faint paper grain over the whole page */
+body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: var(--grain-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.45 0 0 0 0 0.36 0 0 0 0 0.25 0 0 0 0.18 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+h1,
+h2,
+h3 {
+    font-family: var(--font-display);
+    font-optical-sizing: auto;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+::selection {
+    background: var(--mustard);
+    color: var(--ink);
 }
 
 /* The hidden attribute must win over component display rules (e.g. .btn) */
@@ -69,7 +174,7 @@ a {
 }
 
 :focus-visible {
-    outline: 2px solid var(--accent);
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
 }
 
@@ -79,15 +184,68 @@ a {
     padding: 0 24px;
 }
 
+/* Small uppercase mono label, like the print on a record label */
+.label-mono {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+}
+
+/* ---------- Vinyl disc (pure CSS) ---------- */
+
+.vinyl {
+    --size: 56px;
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    background:
+        /* centre hole */
+        radial-gradient(circle, var(--bg) 0 4%, transparent 4.5%),
+        /* paper label */
+        radial-gradient(circle, var(--accent) 0 30%, transparent 31%),
+        /* grooves */
+        repeating-radial-gradient(circle, #1b1612 0 1.5px, #2e2620 1.5px 3px);
+    box-shadow: inset 0 0 0 1px var(--vinyl-rim);
+}
+
+/* Light sheen across the grooves */
+.vinyl::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 30deg, transparent 0 20%, rgba(255, 255, 255, 0.14) 25%, transparent 30% 70%, rgba(255, 255, 255, 0.1) 75%, transparent 80%);
+}
+
+.vinyl-sm {
+    --size: 18px;
+}
+
+.vinyl.spinning {
+    animation: vinyl-spin 3.2s linear infinite;
+}
+
+@keyframes vinyl-spin {
+    to { transform: rotate(360deg); }
+}
+
 /* ---------- Top bar ---------- */
 
 .topbar {
     position: sticky;
     top: 0;
     z-index: 50;
-    background: rgba(13, 14, 16, 0.85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
+    background: var(--topbar-bg);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    /* Double rule, like a printed sleeve */
+    border-bottom: 3px double var(--border-strong);
 }
 
 .topbar-inner {
@@ -99,8 +257,10 @@ a {
 }
 
 .brand {
-    font-size: 1.25rem;
-    font-weight: 800;
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 700;
+    font-style: italic;
     letter-spacing: -0.02em;
     color: var(--text);
     text-decoration: none;
@@ -136,13 +296,72 @@ a.topbar-user-name:hover {
     border-radius: 50%;
     object-fit: cover;
     flex-shrink: 0;
-    background: var(--surface-3);
-    color: var(--text);
+    background: var(--mustard);
+    color: var(--mustard-ink);
+    border: 1.5px solid var(--ink);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.85rem;
+    font-family: var(--font-display);
+    font-size: 0.9rem;
     font-weight: 700;
+}
+
+/* ---------- Theme toggle ---------- */
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: border-color var(--transition), background-color var(--transition), transform var(--transition);
+}
+
+.theme-toggle:hover {
+    border-color: var(--ink);
+    transform: rotate(-12deg);
+}
+
+.theme-toggle svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+/* Show the icon for the mode you'd switch TO */
+.theme-toggle .icon-sun,
+:root[data-theme="dark"] .theme-toggle .icon-moon {
+    display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle .icon-sun {
+    display: block;
+}
+
+/* Ease colours over when the theme is switched (theme.js adds this briefly) */
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+    transition: background-color 250ms ease, color 250ms ease, border-color 250ms ease !important;
 }
 
 /* ---------- Buttons ---------- */
@@ -159,9 +378,9 @@ a.topbar-user-name:hover {
     text-decoration: none;
     white-space: nowrap;
     border-radius: 999px;
-    border: 1px solid transparent;
+    border: 1.5px solid transparent;
     cursor: pointer;
-    transition: background-color var(--transition), border-color var(--transition), color var(--transition);
+    transition: background-color var(--transition), border-color var(--transition), color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 
 .btn:disabled {
@@ -169,24 +388,32 @@ a.topbar-user-name:hover {
     cursor: not-allowed;
 }
 
+/* Primary: orange pill with an ink outline that "lifts" on hover */
 .btn-primary {
     background-color: var(--accent);
+    border-color: var(--ink);
     color: var(--accent-text);
 }
 
 .btn-primary:hover:not(:disabled) {
     background-color: var(--accent-hover);
+    box-shadow: var(--shadow-press);
+    transform: translate(-2px, -2px);
+}
+
+.btn-primary:active:not(:disabled) {
+    box-shadow: none;
+    transform: none;
 }
 
 .btn-secondary {
-    background-color: transparent;
-    border-color: var(--border-strong);
+    background-color: var(--surface);
+    border-color: var(--ink);
     color: var(--text);
 }
 
 .btn-secondary:hover:not(:disabled) {
     background-color: var(--surface-2);
-    border-color: var(--text-faint);
 }
 
 .btn-ghost {
@@ -228,11 +455,11 @@ a.topbar-user-name:hover {
 .input {
     width: 100%;
     padding: 11px 14px;
-    background: var(--surface-2);
-    border: 1px solid var(--border);
+    background: var(--surface);
+    border: 1.5px solid var(--border-strong);
     border-radius: var(--radius-sm);
     color: var(--text);
-    transition: border-color var(--transition), background-color var(--transition);
+    transition: border-color var(--transition), box-shadow var(--transition);
 }
 
 .input::placeholder {
@@ -241,8 +468,8 @@ a.topbar-user-name:hover {
 
 .input:focus {
     outline: none;
-    border-color: var(--accent);
-    background: var(--surface);
+    border-color: var(--ink);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 /* ---------- Chips and tags ---------- */
@@ -252,16 +479,19 @@ a.topbar-user-name:hover {
     align-items: center;
     padding: 3px 10px;
     border-radius: 999px;
-    background: var(--surface-3);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     color: var(--text-muted);
     font-size: 0.8rem;
     font-weight: 500;
     text-transform: capitalize;
 }
 
+/* "Your genres" are always olive, everywhere on the site */
 .chip-accent {
-    background: var(--accent-soft);
-    color: var(--accent);
+    background: var(--olive-soft);
+    border-color: var(--olive-border);
+    color: var(--olive-ink);
 }
 
 /* ---------- Footer ---------- */
@@ -270,8 +500,10 @@ footer {
     text-align: center;
     padding: 32px 0;
     color: var(--text-faint);
-    font-size: 0.85rem;
-    border-top: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.04em;
+    border-top: 3px double var(--border-strong);
     margin-top: 64px;
 }
 
@@ -310,8 +542,8 @@ footer {
     gap: 10px;
     padding: 12px 16px;
     background-color: var(--danger-soft);
-    border: 1px solid rgba(240, 68, 68, 0.35);
-    color: #fecaca;
+    border: 1px solid var(--danger-border);
+    color: var(--danger-ink);
     border-radius: var(--radius-sm);
 }
 
@@ -342,7 +574,6 @@ footer {
     z-index: 9999;
     width: max-content;
     max-width: calc(100vw - 32px);
-    background-color: #2a1414;
     box-shadow: var(--shadow);
     animation: toastIn 0.2s ease-out;
 }
@@ -352,7 +583,7 @@ footer {
     text-align: center;
     padding: 48px 20px;
     color: var(--text-muted);
-    border: 1px dashed var(--border-strong);
+    border: 1.5px dashed var(--border-strong);
     border-radius: var(--radius);
 }
 
@@ -376,25 +607,24 @@ footer {
 .toast {
     padding: 10px 16px;
     border-radius: 999px;
-    background: var(--surface-3);
-    border: 1px solid var(--border-strong);
-    color: var(--text);
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    color: var(--bg);
     font-size: 0.9rem;
     box-shadow: var(--shadow);
     animation: toastIn 0.2s ease-out;
 }
 
 .toast.success {
-    border-color: var(--accent-border);
+    border-left: 6px solid var(--olive);
 }
 
 .toast.error {
-    border-color: rgba(240, 68, 68, 0.5);
-    background: #2a1414;
+    border-left: 6px solid #e0606b;
 }
 
 .toast.warning {
-    border-color: rgba(245, 165, 36, 0.5);
+    border-left: 6px solid var(--mustard);
 }
 
 /* ---------- Animations ---------- */
@@ -417,7 +647,18 @@ footer {
     *::before,
     *::after {
         animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
+    }
+
+    /* Records stay still */
+    .vinyl,
+    .vinyl.spinning {
+        animation: none !important;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+        transform: none;
     }
 }
 
@@ -429,6 +670,12 @@ footer {
     .topbar-user-name {
         display: none;
     }
+
+    /* Comfortable touch targets on phones */
+    .btn-sm {
+        min-height: 40px;
+        padding: 8px 16px;
+    }
 }
 
 /* ---------- Role badges ---------- */
@@ -438,24 +685,26 @@ footer {
     align-items: center;
     padding: 1px 6px;
     border-radius: 4px;
+    font-family: var(--font-mono);
     font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    font-weight: 500;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     line-height: 1.5;
+    border: 1px solid currentColor;
 }
 
 .role-mod {
-    background: rgba(56, 189, 248, 0.15);
-    color: #7dd3fc;
+    background: var(--role-mod-bg);
+    color: var(--role-mod-ink);
 }
 
 .role-admin {
-    background: rgba(245, 165, 36, 0.15);
-    color: #fcd34d;
+    background: var(--role-admin-bg);
+    color: var(--role-admin-ink);
 }
 
 .role-overseer {
-    background: rgba(192, 132, 252, 0.18);
-    color: #d8b4fe;
+    background: var(--accent-soft);
+    color: var(--accent-hover);
 }
